@@ -16,22 +16,21 @@ class _LoginAppState extends State<LoginApp> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color.fromARGB(255, 255, 255, 255),
-              Color.fromARGB(255, 0, 0, 0),
-            ],
-            begin: Alignment.topLeft,
+            colors: [Color(0xFF121212), Color(0xFF1E1E1E)],
+            begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
+
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Logo
-              Image.asset('assets/image3.jpg', height: 420, width: 650),
-              const SizedBox(height: 20),
+              SizedBox(height: 35),
+              Image.asset('assets/image3.png', height: 330, width: 380,fit: BoxFit.cover,),
+
               // App title
               RichText(
                 text: TextSpan(
@@ -41,7 +40,7 @@ class _LoginAppState extends State<LoginApp> {
                       style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: const Color.fromARGB(255, 66, 190, 224),
                       ),
                     ),
                     TextSpan(
@@ -49,7 +48,7 @@ class _LoginAppState extends State<LoginApp> {
                       style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.bold,
-                        color: Colors.yellow,
+                        color: const Color.fromARGB(255, 125, 205, 50),
                       ),
                     ),
                   ],
