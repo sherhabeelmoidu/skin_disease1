@@ -7,111 +7,352 @@ class SignUp extends StatefulWidget {
   _SignUpState createState() => _SignUpState();
 }
 
-class _SignUpState extends State<SignUp> {TextEditingController namecontroller = TextEditingController();
-
+class _SignUpState extends State<SignUp> {
+  TextEditingController namecontroller = TextEditingController();
   TextEditingController emailcontroller = TextEditingController();
-
   TextEditingController password1controller = TextEditingController();
-  bool rememberMe = false;
+  TextEditingController confirmPasswordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 17, 15, 15),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 24),
-          child: Container(
-            padding: EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 255, 255, 255),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [BoxShadow(color:Colors.blueGrey, blurRadius: 10)],
-            ),
+      backgroundColor: Color(0xFFF5F7FA),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Color(0xFF2C3E50)),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Sign Up',
+          style: TextStyle(
+            color: Color(0xFF2C3E50),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: 24),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                SizedBox(height: 20),
+                // Welcome text
                 Text(
-                  "Sign up",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  'Create your account',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2C3E50),
+                  ),
                 ),
-                SizedBox(height: 4),
+                SizedBox(height: 8),
                 Text(
-                  "Sign up to continue",
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  'to get started',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF7F8C8D),
+                  ),
+                ),
+                SizedBox(height: 40),
+
+                // Full Name Field
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: namecontroller,
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.person_outline, color: Color(0xFF7F8C8D)),
+                      hintText: 'Full Name',
+                      hintStyle: TextStyle(color: Color(0xFFBDC3C7)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    ),
+                    style: TextStyle(color: Color(0xFF2C3E50)),
+                  ),
+                ),
+                SizedBox(height: 16),
+
+                // Email Field
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: emailcontroller,
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.email_outlined, color: Color(0xFF7F8C8D)),
+                      hintText: 'Email',
+                      hintStyle: TextStyle(color: Color(0xFFBDC3C7)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    ),
+                    style: TextStyle(color: Color(0xFF2C3E50)),
+                  ),
+                ),
+                SizedBox(height: 16),
+
+                // Password Field
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: password1controller,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.lock_outline, color: Color(0xFF7F8C8D)),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          color: Color(0xFF7F8C8D),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                      hintText: 'Password',
+                      hintStyle: TextStyle(color: Color(0xFFBDC3C7)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    ),
+                    style: TextStyle(color: Color(0xFF2C3E50)),
+                  ),
+                ),
+                SizedBox(height: 16),
+
+                // Confirm Password Field
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: confirmPasswordController,
+                    obscureText: _obscureConfirmPassword,
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.lock_outline, color: Color(0xFF7F8C8D)),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                          color: Color(0xFF7F8C8D),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                          });
+                        },
+                      ),
+                      hintText: 'Confirm Password',
+                      hintStyle: TextStyle(color: Color(0xFFBDC3C7)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    ),
+                    style: TextStyle(color: Color(0xFF2C3E50)),
+                  ),
+                ),
+                SizedBox(height: 32),
+
+                // Sign Up Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      reg(
+                        email: emailcontroller.text,
+                        password1: password1controller.text,
+                        name: namecontroller.text,
+                        context: context,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF3B9AE1),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                    child: Text(
+                      'Sign Up',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ),
                 SizedBox(height: 24),
-                TextField(controller: namecontroller,
-                  decoration: InputDecoration(
-                    labelText: 'Name',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 16),
-                TextField(controller: emailcontroller,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 16),
-                TextField(controller: password1controller,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 16),
+
+                // Divider
                 Row(
                   children: [
-                    Checkbox(
-                      value: rememberMe,
-                      onChanged: (val) {
-                        setState(() {
-                          rememberMe = val ?? false;
-                        });
-                      },
+                    Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'or',
+                        style: TextStyle(color: Color(0xFF95A5A6)),
+                      ),
                     ),
-                    Text("Remember me"),
+                    Expanded(child: Divider(color: Color(0xFFE0E0E0))),
                   ],
                 ),
-                SizedBox(height: 10),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(double.infinity, 50),
-                  ),
-                  onPressed: () { reg(
-                  email: emailcontroller.text,
-                 
-                  password1: password1controller.text,
-                  context: context,
-                );
-                    // Handle sign-up logic
-                  },
-                  child: Text("Sign up"),
-                ),
-                SizedBox(height: 16),
-                Text("ACCESS QUICKLY"),
-                SizedBox(height: 12),
+                SizedBox(height: 24),
+
+                // Social Login Buttons
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    OutlinedButton(onPressed: () {}, child: Text("Google")),
-                    OutlinedButton(onPressed: () {}, child: Text("LinkedIn")),
-                    OutlinedButton(onPressed: () {}, child: Text("SSO")),
+                    // Google
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        icon: Icon(Icons.g_mobiledata, color: Color(0xFFDB4437), size: 32),
+                        onPressed: () {
+                          // Google sign in
+                        },
+                      ),
+                    ),
+                    SizedBox(width: 20),
+                    // Facebook
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        icon: Icon(Icons.facebook, color: Color(0xFF1877F2), size: 28),
+                        onPressed: () {
+                          // Facebook sign in
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 32),
+
+                // Login link
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Already have an account? ",
+                      style: TextStyle(color: Color(0xFF7F8C8D)),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => LoginApp()),
+                        );
+                      },
+                      child: Text(
+                        "Log In",
+                        style: TextStyle(
+                          color: Color(0xFF3B9AE1),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 SizedBox(height: 16),
-                GestureDetector(
-                  onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context)=> LoginApp()));
-                    // Navigate to Sign In page
-                  },
-                  child: Text(
-                    "Already have an account? Sign in",
-                    style: TextStyle(color: Colors.blue),
+
+                // Terms text
+                Text(
+                  'By continuing you agree to the Terms & Conditions.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF95A5A6),
                   ),
                 ),
+                SizedBox(height: 20),
               ],
             ),
           ),

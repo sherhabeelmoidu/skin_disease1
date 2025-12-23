@@ -4,10 +4,8 @@ import 'package:skin_disease1/firebase_options.dart';
 import 'package:skin_disease1/firstopen.dart';
 
 void main() async {
-  
-await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-);
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -17,9 +15,6 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-     home: Login()
-    );
+    return MaterialApp(debugShowCheckedModeBanner: false, home: Login());
   }
 }

@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -7,24 +6,52 @@ import 'package:skin_disease1/afterlogin.dart';
 Future<void> reg({
   required String email,
   required String password1,
- 
+  required String name,
   required BuildContext context,
-}) async {  
+}) async {
   try {
     UserCredential userCredential = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(email: email, password: password1);
     User? user = userCredential.user;
-    await FirebaseFirestore.instance.collection('user').doc(user?.uid).set({
-      "email": email,
-    });
+    // Use uid when available; fallback to auto-id document (shouldn't normally be needed)
+    if (user != null && user.uid.isNotEmpty) {
+      await FirebaseFirestore.instance.collection('user').doc(user.uid).set({
+        "email": email,
+        "name": name,
+        "created_at": FieldValue.serverTimestamp(),
+      });
+     
+    } else {
+      final ref = await FirebaseFirestore.instance.collection('user').add({
+        "email": email,
+        "name": name,
+        "note": 'uid_missing',
+        "created_at": FieldValue.serverTimestamp(),
+      });
+      debugPrint('User document created with auto-id ${ref.id}');
+    }
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text("user created successfully")));
+    ).showSnackBar(const SnackBar(content: Text("User created successfully")));
   } catch (e) {
+    debugPrint('Registration failed: $e');
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(e.toString())));
   }
+}
+
+/// Debug helper: list all documents in `user` collection (returns list and prints each)
+Future<List<Map<String, dynamic>>> fetchUsers() async {
+  final snapshot = await FirebaseFirestore.instance.collection('user').get();
+  final List<Map<String, dynamic>> users = [];
+  for (final doc in snapshot.docs) {
+    final data = doc.data();
+    data['id'] = doc.id;
+    users.add(data);
+    debugPrint('fetchUsers: id=${doc.id} data=$data');
+  }
+  return users;
 }
 
 Future<void> login({
@@ -40,7 +67,10 @@ Future<void> login({
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text("logined")));
-  Navigator.push(context, MaterialPageRoute(builder:(context)=>ImagePickerPage()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ImagePickerPage()),
+    );
   } catch (e) {
     ScaffoldMessenger.of(
       context,
@@ -48,3 +78,19 @@ Future<void> login({
   }
 }
 
+Future<void> forgotpassword({required String email,
+
+  required BuildContext context,
+})async {
+  try {
+    await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("Password reset email sent.")));
+   
+  } catch (e) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(e.toString())));
+  }
+}
