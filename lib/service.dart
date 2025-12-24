@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skin_disease1/afterlogin.dart';
+import 'package:skin_disease1/admin_dashboard.dart';
 
 Future<void> reg({
   required String email,
@@ -59,6 +60,23 @@ Future<void> login({
   required String password1,
   required BuildContext context,
 }) async {
+  // Check for admin credentials first
+  const String adminEmail = "admin@dermasense.com";
+  const String adminPassword = "admin123";
+
+  if (email == adminEmail && password1 == adminPassword) {
+    // Admin login
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Admin login successful")),
+    );
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => AdminDashboard()),
+    );
+    return;
+  }
+
+  // Regular user login
   try {
     await FirebaseAuth.instance.signInWithEmailAndPassword(
       email: email,
@@ -66,8 +84,8 @@ Future<void> login({
     );
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text("logined")));
-    Navigator.push(
+    ).showSnackBar(SnackBar(content: Text("Login successful")));
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => ImagePickerPage()),
     );

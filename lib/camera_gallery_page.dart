@@ -1,16 +1,19 @@
-import 'dart:io';
 import 'dart:typed_data';
+import 'dart:io';
 
-import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:camera/camera.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:skin_disease1/inference.dart';
+import 'package:skin_disease1/profile_screen.dart';
+import 'package:skin_disease1/doctors_screen.dart';
+import 'package:skin_disease1/user_drawer.dart';
+import 'package:skin_disease1/chatbot_widget.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class CameraGalleryPage extends StatefulWidget {
   const CameraGalleryPage({Key? key}) : super(key: key);
@@ -32,27 +35,8 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
 
   final ImagePicker _picker = ImagePicker();
 
-  // Mock data for recent scans
-  final List<Map<String, dynamic>> recentScans = [
-    {
-      'name': 'Psoriasis',
-      'confidence': 'Moderate',
-      'time': 'Today',
-      'confidenceColor': Colors.orange,
-    },
-    {
-      'name': 'Dermatitis',
-      'confidence': 'Low',
-      'time': 'Today',
-      'confidenceColor': Colors.green,
-    },
-    {
-      'name': 'Eczema',
-      'confidence': 'Moderate',
-      'time': 'Today',
-      'confidenceColor': Colors.orange,
-    },
-  ];
+  // Real scan history from Firebase
+  // TODO: Implement scan history collection in Firebase
 
   @override
   void initState() {
@@ -221,9 +205,19 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
             width: double.maxFinite,
             child: _webImageBytes != null
                 ? Image.memory(_webImageBytes!, fit: BoxFit.contain)
-                : (_pickedFile != null
+                : (_pickedFile != null && !kIsWeb
                     ? Image.file(File(_pickedFile!.path), fit: BoxFit.contain)
-                    : const SizedBox()),
+                    : (_pickedFile != null && kIsWeb
+                        ? FutureBuilder<Uint8List>(
+                            future: _pickedFile!.readAsBytes(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                return Image.memory(snapshot.data!, fit: BoxFit.contain);
+                              }
+                              return CircularProgressIndicator();
+                            },
+                          )
+                        : const SizedBox())),
           ),
           actions: [
             TextButton(
@@ -272,35 +266,83 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
     );
   }
 
+  String _formatTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
+  }
+
   void _onBottomNavTap(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (index == 2) {
+      // Navigate to Doctors screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => DoctorsScreen()),
+      );
+    } else if (index == 3) {
+      // Navigate to Profile screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ProfileScreen()),
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFFF5F7FA),
+      drawer: UserDrawer(),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.menu, color: Color(0xFF2C3E50)),
-          onPressed: () {
-            // Menu action
-          },
+        title: Row(
+          children: [
+            Icon(Icons.favorite, color: Color(0xFF3B9AE1), size: 28),
+            SizedBox(width: 8),
+            Text(
+              'DermaSense',
+              style: GoogleFonts.poppins(
+                color: Color(0xFF2C3E50),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(Icons.menu, color: Color(0xFF2C3E50)),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          ),
         ),
         actions: [
           IconButton(
             icon: Icon(Icons.notifications_outlined, color: Color(0xFF2C3E50)),
             onPressed: () {
-              // Notifications
+              // TODO: Navigate to notifications screen
             },
           ),
         ],
       ),
-      body: SafeArea(
+      body: Stack(
+        children: [
+          SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(20),
           child: Column(
@@ -410,89 +452,182 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                 ],
               ),
               SizedBox(height: 16),
-              // Recent Scans List
-              ...recentScans.map((scan) {
-                return Container(
-                  margin: EdgeInsets.only(bottom: 12),
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
+              // Recent Scans List - Real Firebase Data
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('user')
+                    .doc(FirebaseAuth.instance.currentUser?.uid)
+                    .collection('scan_history')
+                    .orderBy('timestamp', descending: true)
+                    .limit(5)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text('Error loading scan history'),
+                    );
+                  }
+
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Container(
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      // Thumbnail
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Color(0xFFFFC0C0),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.medical_services_outlined,
-                          color: Colors.red.shade300,
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      // Details
-                      Expanded(
+                      child: Center(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Icon(
+                              Icons.history,
+                              size: 48,
+                              color: Color(0xFFBDC3C7),
+                            ),
+                            SizedBox(height: 16),
                             Text(
-                              scan['name'],
+                              'No scan history yet',
                               style: TextStyle(
                                 fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2C3E50),
+                                color: Color(0xFF7F8C8D),
                               ),
                             ),
-                            SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Text(
-                                  'Confidence: ',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF7F8C8D),
-                                  ),
-                                ),
-                                Text(
-                                  scan['confidence'],
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: scan['confidenceColor'],
-                                  ),
-                                ),
-                              ],
+                            SizedBox(height: 8),
+                            Text(
+                              'Start by scanning your skin condition',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF95A5A6),
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      // Time
-                      Text(
-                        scan['time'],
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF95A5A6),
+                    );
+                  }
+
+                  return Column(
+                    children: snapshot.data!.docs.map((doc) {
+                      final scanData = doc.data() as Map<String, dynamic>;
+                      final confidence = scanData['confidence'] ?? 0.0;
+                      final label = scanData['label'] ?? 'Unknown';
+                      final timestamp = scanData['timestamp'] as Timestamp?;
+
+                      // Determine confidence color
+                      Color confidenceColor;
+                      String confidenceText;
+                      if (confidence >= 0.8) {
+                        confidenceColor = Colors.green;
+                        confidenceText = 'High';
+                      } else if (confidence >= 0.6) {
+                        confidenceColor = Colors.orange;
+                        confidenceText = 'Moderate';
+                      } else {
+                        confidenceColor = Colors.red;
+                        confidenceText = 'Low';
+                      }
+
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 12),
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
+                        child: Row(
+                          children: [
+                            // Condition Icon
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: confidenceColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.medical_services_outlined,
+                                color: confidenceColor,
+                              ),
+                            ),
+                            SizedBox(width: 16),
+                            // Details
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    label,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2C3E50),
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Confidence: ',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Color(0xFF7F8C8D),
+                                        ),
+                                      ),
+                                      Text(
+                                        confidenceText,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: confidenceColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Time
+                            Text(
+                              timestamp != null ? _formatTimeAgo(timestamp.toDate()) : 'Unknown',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF95A5A6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
             ],
           ),
         ),
+      ),
+
+          // Chatbot Widget
+          ChatbotWidget(),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -526,9 +661,9 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
               label: 'History',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.info_outline),
-              activeIcon: Icon(Icons.info),
-              label: 'About',
+              icon: Icon(Icons.medical_services_outlined),
+              activeIcon: Icon(Icons.medical_services),
+              label: 'Doctors',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
