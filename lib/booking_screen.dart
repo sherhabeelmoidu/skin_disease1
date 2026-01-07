@@ -103,7 +103,7 @@ class _BookingScreenState extends State<BookingScreen> {
         'date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
         'time': _selectedTime!.format(context),
         'notes': _notesController.text.trim(),
-        'status': 'pending', // pending, confirmed, completed, cancelled
+        'status': 'pending', 
         'timestamp': FieldValue.serverTimestamp(),
         'type': 'offline',
       };
