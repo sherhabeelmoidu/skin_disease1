@@ -20,7 +20,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // 1. Go to your Cloudinary dashboard
   // 2. Copy your Cloud Name from the dashboard
   // 3. Create an upload preset in Settings > Upload
-  final cloudinary = CloudinaryPublic('your-cloud-name', 'your-upload-preset', cache: false);
+  final cloudinary = CloudinaryPublic('dgn6dvfzm', 'skindisease_images', cache: false);
 
   // Controllers for form fields
   final TextEditingController _nameController = TextEditingController();

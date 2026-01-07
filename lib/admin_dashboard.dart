@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:skin_disease1/admin_users.dart';
 import 'package:skin_disease1/admin_doctors.dart';
 import 'package:skin_disease1/admin_notifications.dart';
+import 'package:skin_disease1/admin_appointments.dart';
+import 'package:skin_disease1/doctor_approvals.dart';
 
 class AdminDashboard extends StatefulWidget {
   @override
@@ -14,12 +16,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
   final List<Widget> _screens = [
     AdminUsers(),
     AdminDoctors(),
+    DoctorApprovals(),
+    AdminAppointments(),
     AdminNotifications(),
   ];
 
   final List<String> _titles = [
     'Users Management',
     'Doctors Management',
+    'Doctor Approvals',
+    'Appointments',
     'Notifications',
   ];
 
@@ -83,8 +89,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
             label: 'Doctors',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.how_to_reg),
+            label: 'Approvals',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event_note),
+            label: 'Bookings',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.notifications),
-            label: 'Notifications',
+            label: 'Alerts',
           ),
         ],
         currentIndex: _selectedIndex,

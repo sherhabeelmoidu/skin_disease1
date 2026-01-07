@@ -17,7 +17,7 @@ class _AdminDoctorsState extends State<AdminDoctors> {
   // 1. Go to your Cloudinary dashboard
   // 2. Copy your Cloud Name from the dashboard
   // 3. Create an upload preset in Settings > Upload
-  final cloudinary = CloudinaryPublic('your-cloud-name', 'your-upload-preset', cache: false);
+  final cloudinary = CloudinaryPublic('dgn6dvfzm', 'skindisease_images', cache: false);
 
   // Controllers for add/edit form
   final TextEditingController _nameController = TextEditingController();
@@ -482,12 +482,6 @@ class _AdminDoctorsState extends State<AdminDoctors> {
                     ],
                   ),
                 ),
-                FloatingActionButton(
-                  onPressed: () => _showDoctorForm(),
-                  backgroundColor: Color(0xFF3B9AE1),
-                  foregroundColor: Colors.white,
-                  mini: true,
-                  child: Icon(Icons.add),
                 ),
               ],
             ),
@@ -538,7 +532,7 @@ class _AdminDoctorsState extends State<AdminDoctors> {
                               borderRadius: BorderRadius.circular(25),
                             ),
                           ),
-                          child: Text('Add First Doctor'),
+                          child: Text('Add First Doctor (Wait for Signup)'),
                         ),
                       ],
                     ),

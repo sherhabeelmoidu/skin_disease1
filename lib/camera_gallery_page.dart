@@ -13,6 +13,7 @@ import 'package:skin_disease1/profile_screen.dart';
 import 'package:skin_disease1/doctors_screen.dart';
 import 'package:skin_disease1/user_drawer.dart';
 import 'package:skin_disease1/chatbot_widget.dart';
+import 'package:skin_disease1/chat_list.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CameraGalleryPage extends StatefulWidget {
@@ -149,15 +150,22 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                 title: Text('Camera'),
                 onTap: () async {
                   Navigator.pop(context);
-                  final XFile? file = await _picker.pickImage(
-                    source: ImageSource.camera,
-                  );
-                  if (file != null) {
+                  if (_controller != null && _controller!.value.isInitialized) {
+                    final XFile file = await _controller!.takePicture();
                     setState(() {
                       _pickedFile = file;
                       _webImageBytes = null;
                     });
                     await _showConfirmDialog();
+                  } else {
+                    final XFile? file = await _picker.pickImage(source: ImageSource.camera);
+                    if (file != null) {
+                      setState(() {
+                        _pickedFile = file;
+                        _webImageBytes = null;
+                      });
+                      await _showConfirmDialog();
+                    }
                   }
                 },
               ),
@@ -241,13 +249,21 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                     file: _pickedFile != null ? File(_pickedFile!.path) : null,
                     bytes: _webImageBytes,
                   );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Result: ${res['label']} (${(res['confidence'] as double).toStringAsFixed(2)})',
-                      ),
-                    ),
-                  );
+                  
+                  if (!mounted) return;
+                  
+                  // Save scan to history
+                  await FirebaseFirestore.instance
+                      .collection('user')
+                      .doc(FirebaseAuth.instance.currentUser?.uid)
+                      .collection('scan_history')
+                      .add({
+                    'label': res['label'],
+                    'confidence': res['confidence'],
+                    'timestamp': FieldValue.serverTimestamp(),
+                  });
+
+                  _showResultDialog(res['label'], res['confidence']);
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Analysis failed: $e')),
@@ -263,6 +279,62 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
           ],
         );
       },
+    );
+  }
+
+  void _showResultDialog(String label, double confidence) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Column(
+          children: [
+            const Icon(Icons.analytics_outlined, color: Color(0xFF3B9AE1), size: 48),
+            const SizedBox(height: 8),
+            const Text('Scan Result', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label.toUpperCase(),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50)),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Confidence: ${(confidence * 100).toStringAsFixed(1)}%',
+              style: TextStyle(color: confidence > 0.7 ? Colors.green : Colors.orange, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'We recommend consulting a dermatologist for a professional diagnosis and treatment plan.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Color(0xFF7F8C8D)),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close', style: TextStyle(color: Color(0xFF7F8C8D))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => DoctorsScreen()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B9AE1),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Find Doctors', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -333,6 +405,12 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
         ),
         actions: [
           IconButton(
+            icon: Icon(Icons.chat_bubble_outline, color: Color(0xFF2C3E50)),
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => ChatList()));
+            },
+          ),
+          IconButton(
             icon: Icon(Icons.notifications_outlined, color: Color(0xFF2C3E50)),
             onPressed: () {
               // TODO: Navigate to notifications screen
@@ -348,6 +426,43 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Live Camera Preview
+              if (_isCameraInitialized && _controller != null)
+                Container(
+                  height: 250,
+                  width: double.infinity,
+                  margin: EdgeInsets.only(bottom: 24),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      alignment: Alignment.bottomCenter,
+                      children: [
+                        CameraPreview(_controller!),
+                        Positioned(
+                          bottom: 10,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(12)),
+                            child: Text('Live Detection Ready', style: TextStyle(color: Colors.white, fontSize: 12)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else if (_cameraError != null)
+                 Container(
+                  height: 150,
+                  width: double.infinity,
+                  margin: EdgeInsets.only(bottom: 24),
+                  decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(20)),
+                  child: Center(child: Text(_cameraError!, style: TextStyle(color: Colors.red))),
+                ),
+
               // Welcome Title
               Text(
                 'Welcome to DermaSense',
