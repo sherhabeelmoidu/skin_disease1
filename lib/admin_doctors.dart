@@ -482,7 +482,6 @@ class _AdminDoctorsState extends State<AdminDoctors> {
                     ],
                   ),
                 ),
-                ),
               ],
             ),
           ),
