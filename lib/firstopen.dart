@@ -15,12 +15,6 @@ class Login extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 10),
-                Image.asset(
-                  'assets/icon/logo.png',
-                  height: 60,
-                  fit: BoxFit.contain,
-                ),
                 const SizedBox(height: 20),
                 // Title
                 Text(
