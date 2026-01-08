@@ -105,7 +105,7 @@ class _BookingScreenState extends State<BookingScreen> {
         'notes': _notesController.text.trim(),
         'status': 'pending', 
         'timestamp': FieldValue.serverTimestamp(),
-        'type': 'offline',
+        'type': 'offline', 
       };
 
       await FirebaseFirestore.instance.collection('appointments').add(appointmentData);

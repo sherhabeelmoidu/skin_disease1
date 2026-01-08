@@ -41,7 +41,13 @@ class _LoginAppState extends State<LoginApp> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
+                Image.asset(
+                  'assets/icon/logo.png',
+                  height: 100,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 32),
                 // Welcome text
                 Text(
                   'Welcome back!',

@@ -77,7 +77,13 @@ class _SignUpState extends State<SignUp> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
+                Image.asset(
+                  'assets/icon/logo.png',
+                  height: 80,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 24),
                 Text(
                   'Create your account',
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50)),

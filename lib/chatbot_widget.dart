@@ -163,10 +163,12 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
                                 shape: BoxShape.circle,
                                 color: Colors.white.withOpacity(0.2),
                               ),
-                              child: Icon(
-                                Icons.smart_toy,
-                                color: Colors.white,
-                                size: 20,
+                              child: Padding(
+                                padding: const EdgeInsets.all(6.0),
+                                child: Image.asset(
+                                  'assets/icon/logo.png',
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                             SizedBox(width: 12),
@@ -282,19 +284,21 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 child: AnimatedSwitcher(
-                  duration: Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 300),
                   child: _isExpanded
-                      ? Icon(
+                      ? const Icon(
                           Icons.close,
                           key: ValueKey('close'),
                           color: Colors.white,
                           size: 28,
                         )
-                      : Icon(
-                          Icons.smart_toy,
-                          key: ValueKey('chat'),
-                          color: Colors.white,
-                          size: 28,
+                      : Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Image.asset(
+                            'assets/icon/logo.png',
+                            key: const ValueKey('chat'),
+                            color: Colors.white,
+                          ),
                         ),
                 ),
               ),

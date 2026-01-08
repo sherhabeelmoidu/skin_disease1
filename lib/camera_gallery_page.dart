@@ -289,7 +289,11 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Column(
           children: [
-            const Icon(Icons.analytics_outlined, color: Color(0xFF3B9AE1), size: 48),
+            Image.asset(
+              'assets/icon/logo.png',
+              height: 60,
+              fit: BoxFit.contain,
+            ),
             const SizedBox(height: 8),
             const Text('Scan Result', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
@@ -383,7 +387,11 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
         elevation: 0,
         title: Row(
           children: [
-            Icon(Icons.favorite, color: Color(0xFF3B9AE1), size: 28),
+            Image.asset(
+              'assets/icon/logo.png',
+              height: 32,
+              fit: BoxFit.contain,
+            ),
             SizedBox(width: 8),
             Text(
               'DermaSense',

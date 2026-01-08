@@ -31,7 +31,6 @@ class AppointmentsScreen extends StatelessWidget {
               stream: FirebaseFirestore.instance
                   .collection('appointments')
                   .where('userId', isEqualTo: user.uid)
-                  .orderBy('timestamp', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
