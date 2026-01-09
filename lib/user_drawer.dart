@@ -66,7 +66,7 @@ class _UserDrawerState extends State<UserDrawer> {
                         child: profileImageUrl == null
                             ? const Icon(
                                 Icons.person,
-                                color: Colors.white,
+                                color: Colors.white,  
                                 size: 30,
                               )
                             : null,

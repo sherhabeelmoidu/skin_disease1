@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:skin_disease1/doctor_dashboard.dart';
-import 'package:geolocator/geolocator.dart';
+
 
 class DoctorProfileSetupScreen extends StatefulWidget {
   @override
@@ -26,49 +26,11 @@ class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
   String? _imageUrl;
   bool _isUploading = false;
   bool _isLoading = false;
-  double? _lat;
-  double? _lng;
+
 
   final cloudinary = CloudinaryPublic('dgn6dvfzm', 'skindisease_images', cache: false);
 
-  Future<void> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
 
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location services are disabled.')));
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location permissions are denied.')));
-        return;
-      }
-    }
-    
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location permissions are permanently denied.')));
-      return;
-    } 
-
-    setState(() => _isLoading = true);
-    try {
-      Position position = await Geolocator.getCurrentPosition();
-      setState(() {
-        _lat = position.latitude;
-        _lng = position.longitude;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location fetched successfully!')));
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to get location: $e')));
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -101,10 +63,7 @@ class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please upload a profile photo')));
       return;
     }
-    if (_lat == null || _lng == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please fetch your location')));
-      return;
-    }
+
 
     setState(() => _isLoading = true);
 
@@ -123,8 +82,7 @@ class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
         'booking_number': _bookingNumberController.text.trim(),
         'address': _addressController.text.trim(),
         'profile_image': _imageUrl,
-        'latitude': _lat,
-        'longitude': _lng,
+
         'is_working': true,
         'created_at': FieldValue.serverTimestamp(),
       };
@@ -199,20 +157,6 @@ class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
               SizedBox(height: 16),
               _buildField(_addressController, 'Clinic Address', Icons.location_on, maxLines: 3),
               
-              SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _getCurrentLocation,
-                  icon: Icon(Icons.my_location),
-                  label: Text(_lat != null ? 'Location Captured' : 'Fetch Clinic Location (GPS)'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _lat != null ? Colors.green : Color(0xFF3B9AE1),
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    side: BorderSide(color: _lat != null ? Colors.green : Color(0xFF3B9AE1)),
-                  ),
-                ),
-              ),
 
               SizedBox(height: 40),
               SizedBox(
