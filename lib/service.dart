@@ -5,6 +5,7 @@ import 'package:skin_disease1/afterlogin.dart';
 import 'package:skin_disease1/admin_dashboard.dart';
 import 'package:skin_disease1/doctor_dashboard.dart';
 import 'package:skin_disease1/doctor_profile_setup.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> reg({
   required String email,
@@ -56,6 +57,9 @@ Future<void> login({
   const String adminPassword = "admin123";
 
   if (email == adminEmail && password1 == adminPassword) {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isAdminLoggedIn', true);
+    
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Admin login successful")));
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AdminDashboard()));
     return;

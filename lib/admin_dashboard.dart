@@ -4,6 +4,8 @@ import 'package:skin_disease1/admin_doctors.dart';
 import 'package:skin_disease1/admin_notifications.dart';
 import 'package:skin_disease1/admin_appointments.dart';
 import 'package:skin_disease1/doctor_approvals.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:skin_disease1/firstopen.dart';
 
 class AdminDashboard extends StatefulWidget {
   @override
@@ -65,9 +67,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     child: Text('Cancel'),
                   ),
                   TextButton(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(context);
-                      Navigator.pop(context);
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setBool('isAdminLoggedIn', false);
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => Login()),
+                        (route) => false,
+                      );
                     },
                     child: Text('Logout', style: TextStyle(color: Colors.red)),
                   ),

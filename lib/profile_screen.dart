@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:cloudinary_public/cloudinary_public.dart';
-import 'package:skin_disease1/service.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
