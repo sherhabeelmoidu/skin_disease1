@@ -36,12 +36,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF3B9AE1), Color(0xFF2C3E50)],
+            ),
+          ),
+        ),
         title: Text(
           _titles[_selectedIndex],
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.logout_outlined, color: Color(0xFFE11D48)),
+          icon: const Icon(Icons.logout_outlined, color: Colors.white),
           onPressed: () => _showLogoutDialog(context),
         ),
         actions: [
@@ -49,7 +58,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF3B9AE1).withOpacity(0.1),
+              color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -57,11 +66,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
               style: GoogleFonts.outfit(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF3B9AE1),
+                color: Colors.white,
               ),
             ),
           ),
         ],
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
@@ -112,7 +122,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('isAdminLoggedIn', false);
               Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const Login()),
+                MaterialPageRoute(builder: (context) => Login()),
                 (route) => false,
               );
             },

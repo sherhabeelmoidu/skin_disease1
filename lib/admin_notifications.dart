@@ -47,7 +47,7 @@ class _AdminNotificationsState extends State<AdminNotifications> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Notification sent to ${usersSnapshot.docs.length} users'),
+          content: Text('Notification broadcast successfully'),
           backgroundColor: Colors.green,
         ),
       );

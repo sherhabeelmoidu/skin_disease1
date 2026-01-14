@@ -46,8 +46,6 @@ class _AdminAppointmentsState extends State<AdminAppointments> {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
           .collection('appointments')
-          .where('status', whereIn: statuses)
-          .orderBy('timestamp', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));

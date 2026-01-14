@@ -18,7 +18,6 @@ import 'package:skin_disease1/chat_list.dart';
 import 'package:skin_disease1/notifications_screen.dart';
 import 'package:skin_disease1/inference_result_page.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class CameraGalleryPage extends StatefulWidget {
   const CameraGalleryPage({Key? key}) : super(key: key);
@@ -361,31 +360,95 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: UserDrawer(),
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset('assets/icon/logo.png', height: 24),
-            const SizedBox(width: 8),
-            Text(
-              'DermaSense',
-              style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 120,
+            floating: false,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF3B9AE1), Color(0xFF2C3E50)],
+                  ),
+                ),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 40),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'DermaSense AI',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.chat_bubble_outline),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ChatList())),
+            leading: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.menu, color: Colors.white),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chat_outlined, color: Colors.white),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ChatList())),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
+          SliverToBoxAdapter(
+            child: _buildBody(),
           ),
-          const SizedBox(width: 8),
         ],
       ),
-      body: SingleChildScrollView(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => ChatbotWidget(),
+          );
+        },
+        backgroundColor: const Color(0xFF2C3E50),
+        icon: const Icon(Icons.support_agent, color: Colors.white),
+        label: const Text('Derma AI Assistant', style: TextStyle(color: Colors.white)),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onBottomNavTap,
+        selectedItemColor: const Color(0xFF3B9AE1),
+        unselectedItemColor: const Color(0xFF94A3B8),
+        showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+          BottomNavigationBarItem(icon: Icon(Icons.medical_services), label: 'Doctors'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    return SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -532,21 +595,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => const ChatBotWidget(),
-          );
-        },
-        backgroundColor: const Color(0xFF2C3E50),
-        icon: const Icon(Icons.support_agent, color: Colors.white),
-        label: const Text('Derma AI Assistant', style: TextStyle(color: Colors.white)),
-      ),
-    );
+      );
   }
 
   Widget _buildHistoryCard(Map<String, dynamic> data) {
@@ -621,14 +670,5 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
         ],
       ),
     );
-  }
-  }
-
-  String _formatTimeAgo(DateTime dateTime) {
-    final difference = DateTime.now().difference(dateTime);
-    if (difference.inDays > 0) return '${difference.inDays}d ago';
-    if (difference.inHours > 0) return '${difference.inHours}h ago';
-    if (difference.inMinutes > 0) return '${difference.inMinutes}m ago';
-    return 'Just now';
   }
 }

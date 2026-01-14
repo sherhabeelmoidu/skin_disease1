@@ -51,62 +51,160 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F7FA),
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
+        title: const Text('Our Doctors', style: TextStyle(color: Color(0xFF2C3E50), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0,
-        title: Text('Our Doctors', style: TextStyle(color: Color(0xFF2C3E50), fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
-            icon: Icon(Icons.map_outlined, color: Color(0xFF3B9AE1)),
+            icon: const Icon(Icons.map_outlined, color: Color(0xFF3B9AE1)),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => DoctorsMapScreen(userPosition: _userPosition))),
-            tooltip: 'View on Map',
           ),
           IconButton(
-            icon: Icon(_sortByDistance ? Icons.near_me : Icons.near_me_outlined, color: Color(0xFF3B9AE1)),
-            onPressed: () => setState(() => _sortByDistance = !_sortByDistance),
-            tooltip: 'Sort by distance',
-          ),
-          IconButton(
-            icon: Icon(Icons.event_note, color: Colors.grey),
+            icon: const Icon(Icons.event_note, color: Colors.grey),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AppointmentsScreen())),
           ),
         ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .collection('doctors')
-            .where('approval_status', isEqualTo: 'approved')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+      body: Column(
+        children: [
+          // Filter Section
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: Colors.white,
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: _getUserLocation,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: _sortByDistance ? const Color(0xFF3B9AE1) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _sortByDistance ? const Color(0xFF3B9AE1) : Colors.transparent),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.near_me, 
+                            size: 18, 
+                            color: _sortByDistance ? Colors.white : const Color(0xFF64748B)
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Find Nearest',
+                            style: TextStyle(
+                              color: _sortByDistance ? Colors.white : const Color(0xFF64748B),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InkWell(
+                    onTap: () => setState(() => _sortByDistance = false),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: !_sortByDistance ? const Color(0xFF3B9AE1) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: !_sortByDistance ? const Color(0xFF3B9AE1) : Colors.transparent),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.list, 
+                            size: 18, 
+                            color: !_sortByDistance ? Colors.white : const Color(0xFF64748B)
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Show All',
+                            style: TextStyle(
+                              color: !_sortByDistance ? Colors.white : const Color(0xFF64748B),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           
-          var docs = snapshot.data!.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            data['docId'] = doc.id;
-            data['distance'] = _calculateDistance(data['latitude'], data['longitude']);
-            return data;
-          }).toList();
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('doctors')
+                  .where('approval_status', isEqualTo: 'approved')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                
+                var docs = snapshot.data!.docs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  data['docId'] = doc.id;
+                  data['distance'] = _calculateDistance(data['latitude'], data['longitude']);
+                  return data;
+                }).toList();
 
-          if (_sortByDistance && _userPosition != null) {
-            docs.sort((a, b) {
-              if (a['distance'] == -1) return 1;
-              if (b['distance'] == -1) return -1;
-              return a['distance'].compareTo(b['distance']);
-            });
-          }
+                if (_sortByDistance && _userPosition != null) {
+                  docs.sort((a, b) {
+                    if (a['distance'] == -1) return 1;
+                    if (b['distance'] == -1) return -1;
+                    return a['distance'].compareTo(b['distance']);
+                  });
+                }
 
-          return ListView.builder(
-            padding: EdgeInsets.all(16),
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              final doctorData = docs[index];
-              return _buildDoctorCard(doctorData);
-            },
-          );
-        },
+                if (docs.isEmpty) {
+                  return const Center(child: Text('No approved doctors found.'));
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final doctorData = docs[index];
+                    return _buildDoctorCard(doctorData);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  // Override to toggle sort
+  @override
+  Future<void> _getUserLocation() async {
+    setState(() => _sortByDistance = true);
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+        Position position = await Geolocator.getCurrentPosition();
+        setState(() => _userPosition = position);
+      } else {
+        setState(() => _sortByDistance = false); // Revert if permission denied
+      }
+    } catch (e) {
+      debugPrint('Error getting location: $e');
+      setState(() => _sortByDistance = false);
+    }
   }
 
   Widget _buildDoctorCard(Map<String, dynamic> data) {
