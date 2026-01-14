@@ -23,20 +23,6 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
     _getUserLocation();
   }
 
-  Future<void> _getUserLocation() async {
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-        Position position = await Geolocator.getCurrentPosition();
-        setState(() => _userPosition = position);
-      }
-    } catch (e) {
-      debugPrint('Error getting location: $e');
-    }
-  }
 
   double _calculateDistance(double? lat, double? lng) {
     if (_userPosition == null || lat == null || lng == null) return -1;

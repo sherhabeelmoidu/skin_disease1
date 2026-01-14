@@ -417,19 +417,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => ChatbotWidget(),
-          );
-        },
-        backgroundColor: const Color(0xFF2C3E50),
-        icon: const Icon(Icons.support_agent, color: Colors.white),
-        label: const Text('Derma AI Assistant', style: TextStyle(color: Colors.white)),
-      ),
+    
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onBottomNavTap,
