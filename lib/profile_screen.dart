@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:cloudinary_public/cloudinary_public.dart';
+import 'package:skin_disease1/main.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -14,14 +16,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Cloudinary configuration - Replace with your actual credentials
-  // Get these from https://cloudinary.com/console
-  // 1. Go to your Cloudinary dashboard
-  // 2. Copy your Cloud Name from the dashboard
-  // 3. Create an upload preset in Settings > Upload
   final cloudinary = CloudinaryPublic('dgn6dvfzm', 'skindisease_images', cache: false);
 
-  // Controllers for form fields
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
@@ -84,7 +80,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
 
       try {
-        // Upload to Cloudinary
         final response = await cloudinary.uploadFile(
           CloudinaryFile.fromFile(image.path, resourceType: CloudinaryResourceType.Image),
         );
@@ -95,14 +90,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile image uploaded successfully')),
+          const SnackBar(content: Text('Profile image updated')),
         );
       } catch (e) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to upload image: $e')),
+          SnackBar(content: Text('Upload failed: $e')),
         );
       }
     }
@@ -112,9 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       await _firestore.collection('user').doc(user.uid).update({
@@ -128,446 +119,169 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Profile updated successfully')),
+        const SnackBar(content: Text('Profile updated successfully')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update profile: $e')),
+        SnackBar(content: Text('Error: $e')),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _changePassword() async {
-    if (_newPasswordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('New passwords do not match')),
-      );
-      return;
-    }
-
-    if (_newPasswordController.text.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Password must be at least 6 characters')),
-      );
-      return;
-    }
-
-    final user = _auth.currentUser;
-    if (user == null || user.email == null) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Re-authenticate user with current password
-      final credential = EmailAuthProvider.credential(
-        email: user.email!,
-        password: _currentPasswordController.text,
-      );
-
-      await user.reauthenticateWithCredential(credential);
-
-      // Update password
-      await user.updatePassword(_newPasswordController.text);
-
-      // Clear password fields
-      _currentPasswordController.clear();
-      _newPasswordController.clear();
-      _confirmPasswordController.clear();
-
-      setState(() {
-        _isChangingPassword = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Password changed successfully')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to change password: $e')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F7FA),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          'My Profile',
-          style: TextStyle(
-            color: Color(0xFF2C3E50),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
+        title: Text('My Profile', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Color(0xFF2C3E50)),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Profile Image
-              Stack(
-                children: [
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(0xFFF8F9FA),
-                      border: Border.all(color: Color(0xFFE0E0E0), width: 2),
-                      image: _profileImageUrl != null
-                          ? DecorationImage(
-                              image: NetworkImage(_profileImageUrl!),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: _profileImageUrl == null
-                        ? Icon(
-                            Icons.person,
-                            size: 60,
-                            color: Color(0xFFBDC3C7),
-                          )
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            // Profile Header
+            Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF3B9AE1), width: 2),
+                    image: _profileImageUrl != null
+                        ? DecorationImage(image: NetworkImage(_profileImageUrl!), fit: BoxFit.cover)
                         : null,
                   ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Color(0xFF3B9AE1),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
-                      ),
-                      child: IconButton(
-                        icon: Icon(Icons.camera_alt, color: Colors.white, size: 20),
-                        onPressed: _isLoading ? null : _pickImage,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Tap to change profile picture',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF7F8C8D),
+                  child: _profileImageUrl == null
+                      ? const Icon(Icons.person, size: 60, color: Color(0xFFCBD5E1))
+                      : null,
                 ),
-              ),
-              SizedBox(height: 32),
-
-              // Profile Form
-              Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: Offset(0, 2),
+                GestureDetector(
+                  onTap: _isLoading ? null : _pickImage,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF3B9AE1),
+                      shape: BoxShape.circle,
                     ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Personal Information',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2C3E50),
-                      ),
-                    ),
-                    SizedBox(height: 20),
-
-                    // Name
-                    _buildTextField(
-                      _nameController,
-                      'Full Name',
-                      Icons.person,
-                    ),
-                    SizedBox(height: 16),
-
-                    // Phone
-                    _buildTextField(
-                      _phoneController,
-                      'Phone Number',
-                      Icons.phone,
-                      keyboardType: TextInputType.phone,
-                    ),
-                    SizedBox(height: 16),
-
-                    // Height & Weight Row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextField(
-                            _heightController,
-                            'Height (cm)',
-                            Icons.height,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        SizedBox(width: 16),
-                        Expanded(
-                          child: _buildTextField(
-                            _weightController,
-                            'Weight (kg)',
-                            Icons.monitor_weight,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16),
-
-                    // Blood Group
-                    _buildTextField(
-                      _bloodGroupController,
-                      'Blood Group (e.g., A+, B-, O+)',
-                      Icons.bloodtype,
-                    ),
-                    SizedBox(height: 24),
-
-                    // Update Profile Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _updateProfile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF3B9AE1),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : Text(
-                                'Update Profile',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 20),
-
-              // Change Password Section
-              Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Change Password',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2C3E50),
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            _isChangingPassword ? Icons.expand_less : Icons.expand_more,
-                            color: Color(0xFF3B9AE1),
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _isChangingPassword = !_isChangingPassword;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    if (_isChangingPassword) ...[
-                      SizedBox(height: 20),
-                      _buildTextField(
-                        _currentPasswordController,
-                        'Current Password',
-                        Icons.lock,
-                        obscureText: true,
-                      ),
-                      SizedBox(height: 16),
-                      _buildTextField(
-                        _newPasswordController,
-                        'New Password',
-                        Icons.lock_outline,
-                        obscureText: true,
-                      ),
-                      SizedBox(height: 16),
-                      _buildTextField(
-                        _confirmPasswordController,
-                        'Confirm New Password',
-                        Icons.lock_outline,
-                        obscureText: true,
-                      ),
-                      SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _changePassword,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF3B9AE1),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                          ),
-                          child: _isLoading
-                              ? SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : Text(
-                                  'Change Password',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              SizedBox(height: 20),
-
-              // Logout Button
-              Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton(
-                    onPressed: () async {
-                      await _auth.signOut();
-                      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.red, width: 2),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                    ),
-                    child: Text(
-                      'Logout',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.red,
-                      ),
-                    ),
+                    child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _nameController.text.isEmpty ? 'Set Your Name' : _nameController.text,
+              style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 32),
+
+            // Form Cards
+            _buildSectionCard(
+              title: 'Health Statistics',
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: _buildField('Height', _heightController, Icons.height, 'cm')),
+                    const SizedBox(width: 16),
+                    Expanded(child: _buildField('Weight', _weightController, Icons.monitor_weight_outlined, 'kg')),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildField('Blood Group', _bloodGroupController, Icons.bloodtype_outlined, null),
+              ],
+            ),
+            
+            const SizedBox(height: 20),
+            
+            _buildSectionCard(
+              title: 'Contact Details',
+              children: [
+                _buildField('Full Name', _nameController, Icons.person_outline, null),
+                const SizedBox(height: 16),
+                _buildField('Phone Number', _phoneController, Icons.phone_outlined, null),
+              ],
+            ),
+
+            const SizedBox(height: 32),
+            
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _updateProfile,
+                child: _isLoading 
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text('Save Changes'),
               ),
-            ],
-          ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () async {
+                  await _auth.signOut();
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const AuthWrapper()),
+                    (route) => false,
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE11D48),
+                  side: const BorderSide(color: Color(0xFFE11D48)),
+                ),
+                child: const Text('Sign Out'),
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    IconData icon, {
-    bool obscureText = false,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: Color(0xFF7F8C8D)),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+  Widget _buildSectionCard({required String title, required List<Widget> children}) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: const Color(0xFF1E293B)),
+            ),
+            const SizedBox(height: 20),
+            ...children,
+          ],
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Color(0xFFE0E0E0)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Color(0xFF3B9AE1)),
-        ),
-        filled: true,
-        fillColor: Color(0xFFF8F9FA),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
-      style: TextStyle(color: Color(0xFF2C3E50)),
+    );
+  }
+
+  Widget _buildField(String label, TextEditingController controller, IconData icon, String? suffix) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: GoogleFonts.outfit(fontSize: 13, color: const Color(0xFF64748B), fontWeight: FontWeight.w500)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, size: 20),
+            suffixText: suffix,
+            hintText: 'Enter $label',
+          ),
+          style: GoogleFonts.outfit(fontSize: 15),
+        ),
+      ],
     );
   }
 }

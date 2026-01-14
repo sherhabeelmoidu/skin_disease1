@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:cloudinary_public/cloudinary_public.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:skin_disease1/doctor_dashboard.dart';
 
 
@@ -14,6 +15,7 @@ class DoctorProfileSetupScreen extends StatefulWidget {
 
 class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _designationController = TextEditingController();
   final TextEditingController _qualificationController = TextEditingController();
   final TextEditingController _experienceController = TextEditingController();
@@ -22,11 +24,40 @@ class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
   final TextEditingController _bookingNumberController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
 
+  double? _lat;
+  double? _lng;
+  bool _gettingLocation = false;
+
   File? _imageFile;
   String? _imageUrl;
   bool _isUploading = false;
   bool _isLoading = false;
 
+
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _nameController.text = user.displayName ?? '';
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() => _gettingLocation = true);
+    try {
+      final position = await Geolocator.getCurrentPosition();
+      setState(() {
+        _lat = position.latitude;
+        _lng = position.longitude;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location captured!')));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error getting location: $e')));
+    } finally {
+      setState(() => _gettingLocation = false);
+    }
+  }
 
   final cloudinary = CloudinaryPublic('dgn6dvfzm', 'skindisease_images', cache: false);
 
@@ -73,7 +104,7 @@ class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
 
       final doctorData = {
         'uid': user.uid,
-        'name': user.displayName ?? '',
+        'name': _nameController.text.trim(),
         'designation': _designationController.text.trim(),
         'qualification': _qualificationController.text.trim(),
         'years_of_experience': int.tryParse(_experienceController.text.trim()) ?? 0,
@@ -82,8 +113,10 @@ class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
         'booking_number': _bookingNumberController.text.trim(),
         'address': _addressController.text.trim(),
         'profile_image': _imageUrl,
-
+        'latitude': _lat,
+        'longitude': _lng,
         'is_working': true,
+        'approval_status': 'approved',
         'created_at': FieldValue.serverTimestamp(),
       };
 
@@ -94,8 +127,11 @@ class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
       await FirebaseFirestore.instance.collection('user').doc(user.uid).update({
         'isProfileComplete': true,
         'profile_image': _imageUrl,
-        'name': user.displayName ?? '', // Ensure name is synced if changed
+        'name': _nameController.text.trim(),
       });
+      
+      // Update Firebase Auth name
+      await user.updateDisplayName(_nameController.text.trim());
 
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DoctorDashboard()));
     } catch (e) {
@@ -143,6 +179,8 @@ class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
               Text(_isUploading ? 'Uploading...' : 'Profile Photo', style: TextStyle(color: Color(0xFF7F8C8D))),
               SizedBox(height: 32),
               
+              _buildField(_nameController, 'Full Name', Icons.person),
+              SizedBox(height: 16),
               _buildField(_designationController, 'Designation (e.g. Dermatologist)', Icons.work),
               SizedBox(height: 16),
               _buildField(_qualificationController, 'Qualification (e.g. MBBS, MD)', Icons.school),
@@ -153,9 +191,32 @@ class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
               SizedBox(height: 16),
               _buildField(_placeController, 'City / Place', Icons.location_city),
               SizedBox(height: 16),
+              
+              // Location Button
+              Container(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _gettingLocation ? null : _getCurrentLocation,
+                  icon: _gettingLocation ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : Icon(Icons.my_location),
+                  label: Text(_lat != null ? 'Location Captured' : 'Capture Clinic Location'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _lat != null ? Colors.green : Color(0xFF3B9AE1),
+                    side: BorderSide(color: _lat != null ? Colors.green : Color(0xFF3B9AE1)),
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              if (_lat != null) Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text('Lat: ${_lat!.toStringAsFixed(4)}, Lng: ${_lng!.toStringAsFixed(4)}', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              ),
+              
+              SizedBox(height: 16),
               _buildField(_bookingNumberController, 'Booking Contact Number', Icons.phone, keyboard: TextInputType.phone),
               SizedBox(height: 16),
               _buildField(_addressController, 'Clinic Address', Icons.location_on, maxLines: 3),
+              
               
 
               SizedBox(height: 40),

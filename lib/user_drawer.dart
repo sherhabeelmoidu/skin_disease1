@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skin_disease1/doctors_screen.dart';
 import 'package:skin_disease1/profile_screen.dart';
+import 'package:skin_disease1/notifications_screen.dart';
+import 'package:skin_disease1/main.dart';
 
 class UserDrawer extends StatefulWidget {
   @override
@@ -156,9 +158,9 @@ class _UserDrawerState extends State<UserDrawer> {
                     title: 'Notifications',
                     onTap: () {
                       Navigator.pop(context);
-                      // TODO: Implement notifications screen
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Notifications feature coming soon!')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const NotificationsScreen()),
                       );
                     },
                   ),
@@ -286,7 +288,10 @@ class _UserDrawerState extends State<UserDrawer> {
             onPressed: () async {
               Navigator.pop(context);
               await _auth.signOut();
-              Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const AuthWrapper()),
+                (route) => false,
+              );
             },
             child: Text(
               'Logout',

@@ -12,8 +12,12 @@ import 'package:skin_disease1/inference.dart';
 import 'package:skin_disease1/profile_screen.dart';
 import 'package:skin_disease1/doctors_screen.dart';
 import 'package:skin_disease1/user_drawer.dart';
+import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:skin_disease1/chatbot_widget.dart';
 import 'package:skin_disease1/chat_list.dart';
+import 'package:skin_disease1/notifications_screen.dart';
+import 'package:skin_disease1/inference_result_page.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CameraGalleryPage extends StatefulWidget {
@@ -33,6 +37,10 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
   bool _isCameraInitialized = false;
   String? _cameraError;
   int _selectedIndex = 0;
+  String? _lastUploadedImageUrl;
+  bool _isAnalyzing = false;
+
+  final cloudinary = CloudinaryPublic('dgn6dvfzm', 'skindisease_images', cache: false);
 
   final ImagePicker _picker = ImagePicker();
 
@@ -240,17 +248,31 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Analyzing...')),
-                );
+                setState(() => _isAnalyzing = true);
                 try {
+                  // Upload to Cloudinary first
+                  String? imageUrl;
+                  if (_pickedFile != null) {
+                    final response = await cloudinary.uploadFile(
+                      CloudinaryFile.fromFile(_pickedFile!.path, resourceType: CloudinaryResourceType.Image),
+                    );
+                    imageUrl = response.secureUrl;
+                  } else if (_webImageBytes != null) {
+                    // Cloudinary support for bytes or use a different method if needed
+                    // For now, let's assume mobile focus or handle web bytes if possible
+                  }
+
                   final res = await analyzeImage(
                     file: _pickedFile != null ? File(_pickedFile!.path) : null,
                     bytes: _webImageBytes,
                   );
                   
                   if (!mounted) return;
+
+                  setState(() {
+                    _lastUploadedImageUrl = imageUrl;
+                    _isAnalyzing = false;
+                  });
                   
                   // Save scan to history
                   await FirebaseFirestore.instance
@@ -258,23 +280,27 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                       .doc(FirebaseAuth.instance.currentUser?.uid)
                       .collection('scan_history')
                       .add({
-                    'label': res['label'],
-                    'confidence': res['confidence'],
+                    'disease_name': res['label'], // Changed key to match dashboard expectation
+                    'confidence': (res['confidence'] * 100).toInt(),
+                    'image_url': imageUrl,
                     'timestamp': FieldValue.serverTimestamp(),
                   });
 
-                  _showResultDialog(res['label'], res['confidence']);
+                  _showResultPage(res['label'], res['confidence']);
                 } catch (e) {
+                  setState(() => _isAnalyzing = false);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Analysis failed: $e')),
                   );
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF3B9AE1),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                backgroundColor: const Color(0xFF3B9AE1),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: Text('Analyze'),
+              child: _isAnalyzing 
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('Analyze'),
             ),
           ],
         );
@@ -282,62 +308,16 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
     );
   }
 
-  void _showResultDialog(String label, double confidence) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Column(
-          children: [
-            Image.asset(
-              'assets/icon/logo.png',
-              height: 60,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(height: 8),
-            const Text('Scan Result', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
+  void _showResultPage(String label, double confidence) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InferenceResultPage(
+          imagePath: '',
+          result: label,
+          confidence: confidence,
+          imageUrl: _lastUploadedImageUrl, // We should ensure this is set
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label.toUpperCase(),
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50)),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Confidence: ${(confidence * 100).toStringAsFixed(1)}%',
-              style: TextStyle(color: confidence > 0.7 ? Colors.green : Colors.orange, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'We recommend consulting a dermatologist for a professional diagnosis and treatment plan.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Color(0xFF7F8C8D)),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close', style: TextStyle(color: Color(0xFF7F8C8D))),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => DoctorsScreen()),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B9AE1),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Find Doctors', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
@@ -380,422 +360,275 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F7FA),
       drawer: UserDrawer(),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              'assets/icon/logo.png',
-              height: 32,
-              fit: BoxFit.contain,
-            ),
-            SizedBox(width: 8),
+            Image.asset('assets/icon/logo.png', height: 24),
+            const SizedBox(width: 8),
             Text(
               'DermaSense',
-              style: GoogleFonts.poppins(
-                color: Color(0xFF2C3E50),
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
             ),
           ],
         ),
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: Icon(Icons.menu, color: Color(0xFF2C3E50)),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
-          ),
-        ),
         actions: [
           IconButton(
-            icon: Icon(Icons.chat_bubble_outline, color: Color(0xFF2C3E50)),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => ChatList()));
-            },
+            icon: const Icon(Icons.chat_bubble_outline),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ChatList())),
           ),
           IconButton(
-            icon: Icon(Icons.notifications_outlined, color: Color(0xFF2C3E50)),
-            onPressed: () {
-              // TODO: Navigate to notifications screen
-            },
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: Stack(
-        children: [
-          SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Live Camera Preview
-              if (_isCameraInitialized && _controller != null)
-                Container(
-                  height: 250,
-                  width: double.infinity,
-                  margin: EdgeInsets.only(bottom: 24),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Stack(
-                      alignment: Alignment.bottomCenter,
-                      children: [
-                        CameraPreview(_controller!),
-                        Positioned(
-                          bottom: 10,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(12)),
-                            child: Text('Live Detection Ready', style: TextStyle(color: Colors.white, fontSize: 12)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else if (_cameraError != null)
-                 Container(
-                  height: 150,
-                  width: double.infinity,
-                  margin: EdgeInsets.only(bottom: 24),
-                  decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(20)),
-                  child: Center(child: Text(_cameraError!, style: TextStyle(color: Colors.red))),
-                ),
-
-              // Welcome Title
-              Text(
-                'Welcome to DermaSense',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C3E50),
-                ),
-              ),
-              SizedBox(height: 16),
-              // Greeting Card
-              Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // User Greeting Header
+            StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('user')
+                  .doc(FirebaseAuth.instance.currentUser?.uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                String userName = 'User';
+                if (snapshot.hasData && snapshot.data != null) {
+                  final data = snapshot.data!.data() as Map<String, dynamic>?;
+                  userName = data?['name'] ?? 'User';
+                }
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // User name from Firebase
-                    StreamBuilder<DocumentSnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('user')
-                          .doc(FirebaseAuth.instance.currentUser?.uid)
-                          .snapshots(),
-                      builder: (context, snapshot) {
-                        String userName = 'User';
-                        if (snapshot.hasData && snapshot.data != null) {
-                          final data = snapshot.data!.data() as Map<String, dynamic>?;
-                          userName = data?['name'] ?? 'User';
-                        }
-                        return Text(
-                          'Hello, $userName,',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Color(0xFF2C3E50),
-                          ),
-                        );
-                      },
+                    Text(
+                      'Hello, $userName 👋',
+                      style: GoogleFonts.outfit(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1E293B),
+                      ),
                     ),
-                    SizedBox(height: 16),
-                    // Scan Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton.icon(
-                        onPressed: _pickImageAndScan,
-                        icon: Icon(Icons.camera_alt, color: Colors.white),
-                        label: Text(
-                          'Scan Your Skin',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF3B9AE1),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                        ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Ready to check your skin health today?',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        color: const Color(0xFF64748B),
                       ),
                     ),
                   ],
+                );
+              },
+            ),
+            const SizedBox(height: 32),
+
+            // Analysis Pulse Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF3B9AE1), Color(0xFF2C3E50)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF3B9AE1).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-              SizedBox(height: 32),
-              // Recent Scans Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
                 children: [
+                  const Icon(Icons.auto_awesome, color: Colors.white, size: 40),
+                  const SizedBox(height: 16),
                   Text(
-                    'Recent Scans',
-                    style: TextStyle(
+                    'Instant AI Analysis',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF2C3E50),
                     ),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      // View all
-                    },
-                    child: Text(
-                      'View All',
-                      style: TextStyle(
-                        color: Color(0xFF3B9AE1),
-                        fontWeight: FontWeight.w600,
+                  const SizedBox(height: 8),
+                  Text(
+                    'Scan or upload a photo to identify skin conditions with high accuracy.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _pickImageAndScan,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF2C3E50),
                       ),
+                      child: const Text('Start New Scan'),
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 16),
-              // Recent Scans List - Real Firebase Data
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('user')
-                    .doc(FirebaseAuth.instance.currentUser?.uid)
-                    .collection('scan_history')
-                    .orderBy('timestamp', descending: true)
-                    .limit(5)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text('Error loading scan history'),
-                    );
-                  }
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // Recent Activity Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recent Activity',
+                  style: GoogleFonts.outfit(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {},
+                  child: const Text('View All'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
 
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
+            // Scan History List
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('user')
+                  .doc(FirebaseAuth.instance.currentUser?.uid)
+                  .collection('scan_history')
+                  .orderBy('timestamp', descending: true)
+                  .limit(5)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return _buildEmptyState();
+                }
 
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Container(
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.history,
-                              size: 48,
-                              color: Color(0xFFBDC3C7),
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              'No scan history yet',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Color(0xFF7F8C8D),
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Start by scanning your skin condition',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF95A5A6),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-
-                  return Column(
-                    children: snapshot.data!.docs.map((doc) {
-                      final scanData = doc.data() as Map<String, dynamic>;
-                      final confidence = scanData['confidence'] ?? 0.0;
-                      final label = scanData['label'] ?? 'Unknown';
-                      final timestamp = scanData['timestamp'] as Timestamp?;
-
-                      // Determine confidence color
-                      Color confidenceColor;
-                      String confidenceText;
-                      if (confidence >= 0.8) {
-                        confidenceColor = Colors.green;
-                        confidenceText = 'High';
-                      } else if (confidence >= 0.6) {
-                        confidenceColor = Colors.orange;
-                        confidenceText = 'Moderate';
-                      } else {
-                        confidenceColor = Colors.red;
-                        confidenceText = 'Low';
-                      }
-
-                      return Container(
-                        margin: EdgeInsets.only(bottom: 12),
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 8,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            // Condition Icon
-                            Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: confidenceColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                Icons.medical_services_outlined,
-                                color: confidenceColor,
-                              ),
-                            ),
-                            SizedBox(width: 16),
-                            // Details
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    label,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF2C3E50),
-                                    ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        'Confidence: ',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Color(0xFF7F8C8D),
-                                        ),
-                                      ),
-                                      Text(
-                                        confidenceText,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: confidenceColor,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Time
-                            Text(
-                              timestamp != null ? _formatTimeAgo(timestamp.toDate()) : 'Unknown',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF95A5A6),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-
-          // Chatbot Widget
-          ChatbotWidget(),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: Offset(0, -2),
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                    return _buildHistoryCard(data);
+                  },
+                );
+              },
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: _onBottomNavTap,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: Color(0xFF3B9AE1),
-          unselectedItemColor: Color(0xFF95A5A6),
-          selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          unselectedLabelStyle: TextStyle(fontSize: 12),
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.history_outlined),
-              activeIcon: Icon(Icons.history),
-              label: 'History',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.medical_services_outlined),
-              activeIcon: Icon(Icons.medical_services),
-              label: 'Doctors',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
-        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => const ChatBotWidget(),
+          );
+        },
+        backgroundColor: const Color(0xFF2C3E50),
+        icon: const Icon(Icons.support_agent, color: Colors.white),
+        label: const Text('Derma AI Assistant', style: TextStyle(color: Colors.white)),
       ),
     );
+  }
+
+  Widget _buildHistoryCard(Map<String, dynamic> data) {
+    final timestamp = data['timestamp'] as Timestamp?;
+    final dateStr = timestamp != null 
+        ? '${timestamp.toDate().day}/${timestamp.toDate().month}/${timestamp.toDate().year}' 
+        : 'Recent';
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(12),
+        leading: Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12),
+            image: data['image_url'] != null 
+                ? DecorationImage(image: NetworkImage(data['image_url']), fit: BoxFit.cover)
+                : null,
+          ),
+          child: data['image_url'] == null ? const Icon(Icons.image, color: Color(0xFF94A3B8)) : null,
+        ),
+        title: Text(
+          data['disease_name'] ?? 'Analysis',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: const Color(0xFF334155)),
+        ),
+        subtitle: Text(
+          'Date: $dateStr • ${data['confidence'] ?? 'N/A'}% match',
+          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF94A3B8)),
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => InferenceResultPage(
+            imagePath: '', 
+            result: data['disease_name'] ?? 'Unknown',
+            confidence: (data['confidence'] ?? 0).toDouble(),
+            imageUrl: data['image_url'],
+          )));
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.history_outlined, size: 48, color: const Color(0xFFCBD5E1)),
+          const SizedBox(height: 16),
+          Text(
+            'No Scans Yet',
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF475569),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Your skin analysis history will appear here once you perform your first scan.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+  }
+
+  String _formatTimeAgo(DateTime dateTime) {
+    final difference = DateTime.now().difference(dateTime);
+    if (difference.inDays > 0) return '${difference.inDays}d ago';
+    if (difference.inHours > 0) return '${difference.inHours}h ago';
+    if (difference.inMinutes > 0) return '${difference.inMinutes}m ago';
+    return 'Just now';
   }
 }

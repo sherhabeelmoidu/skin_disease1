@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:skin_disease1/notification_service.dart';
 
 class BookingScreen extends StatefulWidget {
   final Map<String, dynamic> doctorData;
@@ -109,6 +110,16 @@ class _BookingScreenState extends State<BookingScreen> {
       };
 
       await FirebaseFirestore.instance.collection('appointments').add(appointmentData);
+
+      // Notify the doctor
+      if (widget.doctorData['uid'] != null) {
+        await NotificationService.sendNotification(
+          userId: widget.doctorData['uid'],
+          title: 'New Appointment Request',
+          message: 'You have a new appointment request from ${appointmentData['userName']} for ${appointmentData['date']}.',
+          type: 'new_appointment',
+        );
+      }
 
       if (!mounted) return;
       

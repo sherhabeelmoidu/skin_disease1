@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:skin_disease1/notification_service.dart';
 
 class DoctorApprovals extends StatelessWidget {
   @override
@@ -140,5 +141,19 @@ class DoctorApprovals extends StatelessWidget {
 
   Future<void> _updateStatus(String docId, String status) async {
     await FirebaseFirestore.instance.collection('user').doc(docId).update({'status': status});
+    
+    // Also update doctors collection if it exists
+    final doctorDoc = await FirebaseFirestore.instance.collection('doctors').doc(docId).get();
+    if (doctorDoc.exists) {
+      await FirebaseFirestore.instance.collection('doctors').doc(docId).update({'approval_status': status});
+    }
+
+    // Send notification to the doctor
+    await NotificationService.sendNotification(
+      userId: docId,
+      title: 'Profile Status Updated',
+      message: 'Your doctor profile has been ${status == 'approved' ? 'approved! You can now access the dashboard.' : 'rejected. Please contact support for more details.'}',
+      type: 'approval_update',
+    );
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:skin_disease1/notification_service.dart';
+import 'package:intl/intl.dart';
 
 class AdminNotifications extends StatefulWidget {
   @override
@@ -33,31 +35,11 @@ class _AdminNotificationsState extends State<AdminNotifications> {
     });
 
     try {
-      // Get all users
-      final usersSnapshot = await _firestore.collection('user').get();
-
-      // Create notification data
-      final notificationData = {
-        'title': _titleController.text.trim(),
-        'message': _messageController.text.trim(),
-        'timestamp': FieldValue.serverTimestamp(),
-        'type': 'admin_broadcast',
-        'read': false,
-      };
-
-      // Send notification to all users
-      final batch = _firestore.batch();
-
-      for (final userDoc in usersSnapshot.docs) {
-        final notificationRef = _firestore
-            .collection('user')
-            .doc(userDoc.id)
-            .collection('notifications')
-            .doc();
-        batch.set(notificationRef, notificationData);
-      }
-
-      await batch.commit();
+      // Send notification to all users using the service
+      await NotificationService.broadcastNotification(
+        title: _titleController.text.trim(),
+        message: _messageController.text.trim(),
+      );
 
       // Clear form
       _titleController.clear();
@@ -292,23 +274,38 @@ class _AdminNotificationsState extends State<AdminNotifications> {
                   ),
                   SizedBox(height: 16),
 
-                  // Sample recent notifications (you can implement actual fetching later)
-                  _buildRecentNotification(
-                    'Welcome to DermaSense!',
-                    'Thank you for joining our community. Get started by taking your first skin analysis.',
-                    '2 hours ago',
-                  ),
-                  SizedBox(height: 12),
-                  _buildRecentNotification(
-                    'New Features Available',
-                    'We\'ve added new AI-powered skin analysis features. Update your app to try them out!',
-                    '1 day ago',
-                  ),
-                  SizedBox(height: 12),
-                  _buildRecentNotification(
-                    'Health Tips',
-                    'Remember to protect your skin from UV rays and stay hydrated for healthy skin.',
-                    '3 days ago',
+                  // Real broadcast history
+                  StreamBuilder<QuerySnapshot>(
+                    stream: _firestore
+                        .collection('broadcasts')
+                        .orderBy('timestamp', descending: true)
+                        .limit(10)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return SizedBox();
+                      
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: snapshot.data!.docs.length,
+                        itemBuilder: (context, index) {
+                          final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                          final timestamp = data['timestamp'] as Timestamp?;
+                          final timeStr = timestamp != null 
+                              ? DateFormat('MMM d, h:mm a').format(timestamp.toDate())
+                              : 'Just now';
+                          
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12.0),
+                            child: _buildRecentNotification(
+                              data['title'] ?? '',
+                              data['message'] ?? '',
+                              timeStr,
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ],
               ),

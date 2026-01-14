@@ -74,7 +74,10 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.collection('doctors').snapshots(),
+        stream: _firestore
+            .collection('doctors')
+            .where('approval_status', isEqualTo: 'approved')
+            .snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
           

@@ -6,6 +6,7 @@ import 'package:skin_disease1/admin_appointments.dart';
 import 'package:skin_disease1/doctor_approvals.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skin_disease1/firstopen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AdminDashboard extends StatefulWidget {
   @override
@@ -24,97 +25,101 @@ class _AdminDashboardState extends State<AdminDashboard> {
   ];
 
   final List<String> _titles = [
-    'Users Management',
-    'Doctors Management',
-    'Doctor Approvals',
+    'User Directory',
+    'Medical Directory',
+    'Doctor Verification',
     'Appointments',
-    'Notifications',
+    'Broadcast System',
   ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F7FA),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         title: Text(
           _titles[_selectedIndex],
-          style: TextStyle(
-            color: Color(0xFF2C3E50),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
         ),
-        centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.logout, color: Color(0xFF2C3E50)),
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text('Logout'),
-                content: Text('Are you sure you want to logout from admin panel?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setBool('isAdminLoggedIn', false);
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (context) => Login()),
-                        (route) => false,
-                      );
-                    },
-                    child: Text('Logout', style: TextStyle(color: Colors.red)),
-                  ),
-                ],
-              ),
-            );
-          },
+          icon: const Icon(Icons.logout_outlined, color: Color(0xFFE11D48)),
+          onPressed: () => _showLogoutDialog(context),
         ),
-      ),
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Users',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.medical_services),
-            label: 'Doctors',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.how_to_reg),
-            label: 'Approvals',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.event_note),
-            label: 'Bookings',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Alerts',
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF3B9AE1).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'ADMIN',
+              style: GoogleFonts.outfit(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF3B9AE1),
+              ),
+            ),
           ),
         ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Color(0xFF3B9AE1),
-        unselectedItemColor: Color(0xFF7F8C8D),
-        backgroundColor: Colors.white,
-        onTap: _onItemTapped,
-        elevation: 8,
-        type: BottomNavigationBarType.fixed,
+      ),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: _screens[_selectedIndex],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+          backgroundColor: Colors.white,
+          indicatorColor: const Color(0xFF3B9AE1).withOpacity(0.1),
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people, color: Color(0xFF3B9AE1)), label: 'Users'),
+            NavigationDestination(icon: Icon(Icons.medical_services_outlined), selectedIcon: Icon(Icons.medical_services, color: Color(0xFF3B9AE1)), label: 'Doctors'),
+            NavigationDestination(icon: Icon(Icons.how_to_reg_outlined), selectedIcon: Icon(Icons.how_to_reg, color: Color(0xFF3B9AE1)), label: 'Verify'),
+            NavigationDestination(icon: Icon(Icons.event_note_outlined), selectedIcon: Icon(Icons.event_note, color: Color(0xFF3B9AE1)), label: 'Bookings'),
+            NavigationDestination(icon: Icon(Icons.campaign_outlined), selectedIcon: Icon(Icons.campaign, color: Color(0xFF3B9AE1)), label: 'Alerts'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Admin Logout', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        content: const Text('Are you sure you want to exit the admin control panel?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Stay'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('isAdminLoggedIn', false);
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const Login()),
+                (route) => false,
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE11D48)),
+            child: const Text('Logout'),
+          ),
+        ],
       ),
     );
   }

@@ -24,7 +24,10 @@ class _DoctorsMapScreenState extends State<DoctorsMapScreen> {
   }
 
   void _loadDoctorMarkers() async {
-    final snapshot = await FirebaseFirestore.instance.collection('doctors').get();
+    final snapshot = await FirebaseFirestore.instance
+        .collection('doctors')
+        .where('approval_status', isEqualTo: 'approved')
+        .get();
     List<Marker> markers = [];
 
     // Add user marker

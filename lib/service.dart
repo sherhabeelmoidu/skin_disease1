@@ -21,6 +21,9 @@ Future<void> reg({
     User? user = userCredential.user;
     
     if (user != null && user.uid.isNotEmpty) {
+      // Update display name in Firebase Auth
+      await user.updateDisplayName(name);
+      
       Map<String, dynamic> userData = {
         "email": email,
         "name": name,

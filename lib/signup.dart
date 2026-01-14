@@ -4,6 +4,7 @@ import 'package:skin_disease1/service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:cloudinary_public/cloudinary_public.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SignUp extends StatefulWidget {
   @override
@@ -52,221 +53,249 @@ class _SignUpState extends State<SignUp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F7FA),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Color(0xFF2C3E50)),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
+        title: const Text('Create Account'),
       ),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 20),
-                Image.asset(
-                  'assets/icon/logo.png',
-                  height: 80,
-                  fit: BoxFit.contain,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Join DermaSense',
+                style: GoogleFonts.outfit(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1E293B),
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  'Create your account',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50)),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Start your journey with professional skin care',
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  color: const Color(0xFF64748B),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'to get started',
-                  style: TextStyle(fontSize: 16, color: Color(0xFF7F8C8D)),
-                ),
-                SizedBox(height: 30),
+              ),
+              const SizedBox(height: 32),
 
-                // Role Selection
-                Container(
-                  padding: EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _selectedRole = 'patient'),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: _selectedRole == 'patient' ? Color(0xFF3B9AE1) : Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Patient',
-                                style: TextStyle(
-                                  color: _selectedRole == 'patient' ? Colors.white : Color(0xFF7F8C8D),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _selectedRole = 'doctor'),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: _selectedRole == 'doctor' ? Color(0xFF3B9AE1) : Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Doctor',
-                                style: TextStyle(
-                                  color: _selectedRole == 'doctor' ? Colors.white : Color(0xFF7F8C8D),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+              // Role Selection
+              Text(
+                'I am a...',
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF475569),
                 ),
-                SizedBox(height: 24),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _buildRoleCard('patient', Icons.person_outline, 'Patient'),
+                  const SizedBox(width: 16),
+                  _buildRoleCard('doctor', Icons.medical_services_outlined, 'Doctor'),
+                ],
+              ),
+              const SizedBox(height: 32),
 
-                _buildTextField(namecontroller, 'Full Name', Icons.person_outline),
-                SizedBox(height: 16),
-                _buildTextField(emailcontroller, 'Email', Icons.email_outlined),
-                SizedBox(height: 16),
-                _buildTextField(password1controller, 'Password', Icons.lock_outline, obscure: _obscurePassword, 
-                  suffix: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Color(0xFF7F8C8D)),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                  )),
-                SizedBox(height: 16),
-                _buildTextField(confirmPasswordController, 'Confirm Password', Icons.lock_outline, obscure: _obscureConfirmPassword,
-                  suffix: IconButton(
-                    icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility, color: Color(0xFF7F8C8D)),
-                    onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-                  )),
-                
-                if (_selectedRole == 'doctor') ...[
-                  SizedBox(height: 24),
-                  Text(
-                    'Upload ID Proof / Medical License',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50)),
-                  ),
-                  SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: _isUploading ? null : _pickIdProof,
-                    child: Container(
-                      height: 120,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Color(0xFFE0E0E0), style: BorderStyle.solid),
-                      ),
-                      child: _idProofImage != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.file(_idProofImage!, fit: BoxFit.cover),
-                            )
-                          : Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.cloud_upload_outlined, size: 40, color: Color(0xFF3B9AE1)),
-                                SizedBox(height: 8),
-                                Text(_isUploading ? 'Uploading...' : 'Choose File', style: TextStyle(color: Color(0xFF7F8C8D))),
-                              ],
-                            ),
+              _buildLabel('Full Name'),
+              TextField(
+                controller: namecontroller,
+                decoration: const InputDecoration(
+                  hintText: 'Enter your full name',
+                  prefixIcon: Icon(Icons.person_outline, size: 22),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              _buildLabel('Email Address'),
+              TextField(
+                controller: emailcontroller,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  hintText: 'name@example.com',
+                  prefixIcon: Icon(Icons.email_outlined, size: 22),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              _buildLabel('Password'),
+              TextField(
+                controller: password1controller,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  hintText: 'Create a secure password',
+                  prefixIcon: const Icon(Icons.lock_outline, size: 22),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      size: 22,
                     ),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              _buildLabel('Confirm Password'),
+              TextField(
+                controller: confirmPasswordController,
+                obscureText: _obscureConfirmPassword,
+                decoration: InputDecoration(
+                  hintText: 'Repeat your password',
+                  prefixIcon: const Icon(Icons.lock_reset, size: 22),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      size: 22,
+                    ),
+                    onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                  ),
+                ),
+              ),
+              
+              if (_selectedRole == 'doctor') ...[
+                const SizedBox(height: 32),
+                _buildLabel('ID Proof / Medical License'),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _isUploading ? null : _pickIdProof,
+                  child: Container(
+                    height: 140,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                    ),
+                    child: _idProofImage != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: Image.file(_idProofImage!, fit: BoxFit.cover),
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.add_a_photo_outlined, size: 32, color: Color(0xFF3B9AE1)),
+                              const SizedBox(height: 12),
+                              Text(
+                                _isUploading ? 'Uploading proof...' : 'Tap to upload documents',
+                                style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 48),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isUploading ? null : () {
+                    if (_selectedRole == 'doctor' && _idProofUrl == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please upload ID proof')));
+                      return;
+                    }
+                    if (password1controller.text != confirmPasswordController.text) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
+                      return;
+                    }
+                    reg(
+                      email: emailcontroller.text,
+                      password1: password1controller.text,
+                      name: namecontroller.text,
+                      role: _selectedRole,
+                      idProofUrl: _idProofUrl,
+                      context: context,
+                    );
+                  },
+                  child: _isUploading 
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('Create Account'),
+                ),
+              ),
+              const SizedBox(height: 32),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Already have an account? ", style: TextStyle(color: Color(0xFF64748B))),
+                  TextButton(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => LoginApp())),
+                    child: const Text("Sign In"),
                   ),
                 ],
-
-                SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isUploading ? null : () {
-                      if (_selectedRole == 'doctor' && _idProofUrl == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please upload ID proof')));
-                        return;
-                      }
-                      if (password1controller.text != confirmPasswordController.text) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Passwords do not match')));
-                        return;
-                      }
-                      reg(
-                        email: emailcontroller.text,
-                        password1: password1controller.text,
-                        name: namecontroller.text,
-                        role: _selectedRole,
-                        idProofUrl: _idProofUrl,
-                        context: context,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF3B9AE1),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                    ),
-                    child: Text('Sign Up', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  ),
-                ),
-                SizedBox(height: 24),
-                
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Already have an account? ", style: TextStyle(color: Color(0xFF7F8C8D))),
-                    TextButton(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => LoginApp())),
-                      child: Text("Log In", style: TextStyle(color: Color(0xFF3B9AE1), fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20),
-              ],
-            ),
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, IconData icon, {bool obscure = false, Widget? suffix}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 2))],
-      ),
-      child: TextField(
-        controller: controller,
-        obscureText: obscure,
-        decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Color(0xFF7F8C8D)),
-          suffixIcon: suffix,
-          hintText: hint,
-          hintStyle: TextStyle(color: Color(0xFFBDC3C7)),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Text(
+        text,
+        style: GoogleFonts.outfit(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF475569),
         ),
-        style: TextStyle(color: Color(0xFF2C3E50)),
+      ),
+    );
+  }
+
+  Widget _buildRoleCard(String role, IconData icon, String label) {
+    final bool isSelected = _selectedRole == role;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedRole = role),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF3B9AE1) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? const Color(0xFF3B9AE1) : const Color(0xFFE2E8F0),
+              width: 2,
+            ),
+            boxShadow: [
+              if (isSelected) 
+                BoxShadow(
+                  color: const Color(0xFF3B9AE1).withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                size: 28,
+                color: isSelected ? Colors.white : const Color(0xFF64748B),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.white : const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

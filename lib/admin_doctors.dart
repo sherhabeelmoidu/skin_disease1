@@ -116,6 +116,7 @@ class _AdminDoctorsState extends State<AdminDoctors> {
         'is_working': _isWorking,
         'address': _isWorking ? _addressController.text.trim() : '',
         'profile_image': _doctorImageUrl,
+        'approval_status': 'approved',
         'created_at': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),
       };
