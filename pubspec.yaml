@@ -54,6 +54,7 @@ dependencies:
   latlong2: ^0.9.1
   flutter_launcher_icons: ^0.14.4
   shared_preferences: ^2.2.2
+  http: ^1.6.0
 flutter_launcher_icons:
   android: true
   ios: true
