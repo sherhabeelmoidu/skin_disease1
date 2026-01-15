@@ -6,6 +6,7 @@ import 'package:skin_disease1/profile_screen.dart';
 import 'package:skin_disease1/notifications_screen.dart';
 import 'package:skin_disease1/main.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:skin_disease1/scan_history_screen.dart';
 
 class UserDrawer extends StatefulWidget {
   const UserDrawer({super.key});
@@ -126,8 +127,11 @@ class _UserDrawerState extends State<UserDrawer> {
                   title: 'Scan History',
                   onTap: () {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('History detail screen coming soon!')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ScanHistoryScreen(),
+                      ),
                     );
                   },
                 ),
@@ -142,13 +146,7 @@ class _UserDrawerState extends State<UserDrawer> {
                     );
                   },
                 ),
-                _buildDrawerItem(
-                  icon: Icons.favorite_rounded,
-                  title: 'Saved',
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                ),
+
                 _buildDrawerItem(
                   icon: Icons.notifications_rounded,
                   title: 'Notifications',
