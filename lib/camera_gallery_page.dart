@@ -21,6 +21,7 @@ import 'package:skin_disease1/scan_history_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skin_disease1/doctors_map_screen.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:skin_disease1/booking_history_screen.dart';
 
 class CameraGalleryPage extends StatefulWidget {
   const CameraGalleryPage({Key? key}) : super(key: key);
@@ -370,10 +371,10 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
 
   void _onBottomNavTap(int index) {
     if (index == 1) {
-      // Navigate to History screen
+      // Navigate to Booking History screen
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const ScanHistoryScreen()),
+        MaterialPageRoute(builder: (context) => const BookingHistoryScreen()),
       );
     } else if (index == 2) {
       // Navigate to Doctors screen
@@ -466,7 +467,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
           unselectedLabelStyle: GoogleFonts.outfit(),
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+            BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Bookings'),
             BottomNavigationBarItem(icon: Icon(Icons.medical_services_outlined), label: 'Doctors'),
             BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
           ],
@@ -497,7 +498,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
       ),
       actions: [
         _buildAppBarAction(Icons.notifications_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()))),
-        _buildAppBarAction(Icons.chat_bubble_outline, () => Navigator.push(context, MaterialPageRoute(builder: (context) => ChatList()))),
+        _buildAppBarAction(Icons.chat_bubble_outline, () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatList(showAppBar: true)))),
         const SizedBox(width: 8),
       ],
       flexibleSpace: FlexibleSpaceBar(

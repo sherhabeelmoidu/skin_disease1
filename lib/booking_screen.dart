@@ -321,17 +321,61 @@ class _BookingScreenState extends State<BookingScreen> {
                     .doc(widget.doctorId)
                     .collection('slots')
                     .where('date', isEqualTo: DateFormat('yyyy-MM-dd').format(_selectedDate!))
-                    .orderBy('time')
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  final docs = snapshot.data?.docs ?? [];
-                  final availableDocs = docs.where((d) => (d.data() as Map<String, dynamic>)['isBooked'] == false).toList();
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)),
+                    );
+                  }
 
-                  if (availableDocs.isEmpty) {
+                  // Helper to parse time string like "09:00 AM" into a comparison value
+                  DateTime _parseTime(String timeStr) {
+                    try {
+                      return DateFormat('hh:mm a').parse(timeStr);
+                    } catch (e) {
+                      return DateTime(2000); // fallback
+                    }
+                  }
+
+                  final now = DateTime.now();
+                  final isToday = _selectedDate != null && 
+                      _selectedDate!.year == now.year && 
+                      _selectedDate!.month == now.month && 
+                      _selectedDate!.day == now.day;
+
+                  final docs = snapshot.data?.docs ?? [];
+                  
+                  // Sort slots by actual time in memory
+                  final sortedDocs = List<QueryDocumentSnapshot>.from(docs);
+                  sortedDocs.sort((a, b) {
+                    final aTimeStr = (a.data() as Map<String, dynamic>)['time'] ?? '';
+                    final bTimeStr = (b.data() as Map<String, dynamic>)['time'] ?? '';
+                    return _parseTime(aTimeStr).compareTo(_parseTime(bTimeStr));
+                  });
+
+                  // Filter for available and FUTURE slots if today
+                  // Filter for FUTURE slots if today, including booked ones
+                  final visibleDocs = sortedDocs.where((d) {
+                    final data = d.data() as Map<String, dynamic>;
+                    
+                    if (isToday) {
+                      final slotTime = _parseTime(data['time']);
+                      // Combine today's date with slot time for accurate comparison
+                      final fullSlotTime = DateTime(
+                        now.year, now.month, now.day,
+                        slotTime.hour, slotTime.minute
+                      );
+                      return fullSlotTime.isAfter(now);
+                    }
+                    return true;
+                  }).toList();
+
+                  if (visibleDocs.isEmpty) {
                     return Container(
                       padding: const EdgeInsets.all(20),
                       width: double.infinity,
@@ -345,7 +389,7 @@ class _BookingScreenState extends State<BookingScreen> {
                           Icon(Icons.event_busy, color: Colors.orange),
                           SizedBox(height: 8),
                           Text(
-                            'No available slots for this date.',
+                            'No slots found for this date.',
                             style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500),
                           ),
                           Text(
@@ -366,14 +410,15 @@ class _BookingScreenState extends State<BookingScreen> {
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
                     ),
-                    itemCount: availableDocs.length,
+                    itemCount: visibleDocs.length,
                     itemBuilder: (context, index) {
-                      final slot = availableDocs[index].data() as Map<String, dynamic>;
-                      final slotId = availableDocs[index].id;
+                      final slot = visibleDocs[index].data() as Map<String, dynamic>;
+                      final slotId = visibleDocs[index].id;
+                      final bool isBooked = slot['isBooked'] == true;
                       final isSelected = _selectedSlotId == slotId;
 
                       return InkWell(
-                        onTap: () {
+                        onTap: isBooked ? null : () {
                           setState(() {
                             _selectedSlotId = slotId;
                             _selectedSlotTime = slot['time'];
@@ -381,20 +426,40 @@ class _BookingScreenState extends State<BookingScreen> {
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFF3B9AE1) : Colors.white,
+                            color: isBooked 
+                                ? Colors.grey[100] 
+                                : (isSelected ? const Color(0xFF3B9AE1) : Colors.white),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: isSelected ? const Color(0xFF3B9AE1) : const Color(0xFFE2E8F0),
+                              color: isBooked 
+                                  ? Colors.grey[300]! 
+                                  : (isSelected ? const Color(0xFF3B9AE1) : const Color(0xFFE2E8F0)),
                             ),
                           ),
                           child: Center(
-                            child: Text(
-                              slot['time'],
-                              style: GoogleFonts.outfit(
-                                color: isSelected ? Colors.white : const Color(0xFF2C3E50),
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                fontSize: 13,
-                              ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  slot['time'],
+                                  style: GoogleFonts.outfit(
+                                    color: isBooked 
+                                        ? Colors.grey[500] 
+                                        : (isSelected ? Colors.white : const Color(0xFF2C3E50)),
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                if (isBooked)
+                                  const Text(
+                                    'Not Available',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),

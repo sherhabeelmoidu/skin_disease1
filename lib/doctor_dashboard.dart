@@ -21,6 +21,13 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
   final user = FirebaseAuth.instance.currentUser;
 
   late List<Widget> _screens;
+  
+  final List<String> _titles = [
+    'Dashboard',
+    'Appointments',
+    'Messages',
+    'Settings',
+  ];
 
   @override
   void initState() {
@@ -47,15 +54,11 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
           ),
         ),
         title: Text(
-          'Doctor Portal',
+          _titles[_selectedIndex],
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
-          ),
           IconButton(
             icon: const Icon(Icons.logout_outlined, color: Colors.white),
             onPressed: () async {
@@ -70,6 +73,31 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
         ],
       ),
       body: _screens[_selectedIndex],
+      floatingActionButton: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('user')
+            .doc(user?.uid)
+            .collection('notifications')
+            .where('read', isEqualTo: false)
+            .snapshots(),
+        builder: (context, snapshot) {
+          final unreadCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+          
+          return Badge(
+            label: Text(unreadCount.toString()),
+            isLabelVisible: unreadCount > 0,
+            backgroundColor: Colors.red,
+            child: FloatingActionButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+              ),
+              backgroundColor: const Color(0xFF3B9AE1),
+              child: const Icon(Icons.notifications_outlined, color: Colors.white),
+            ),
+          );
+        },
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -103,7 +131,7 @@ class _DoctorOverview extends StatelessWidget {
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -128,7 +156,7 @@ class _DoctorOverview extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 16,
             crossAxisSpacing: 16,
-            childAspectRatio: 1.1,
+            childAspectRatio: 1.3,
             children: [
               _buildStatCard('Pending', Icons.timer_outlined, const Color(0xFFF59E0B), 'appointments', 'pending', uid!),
               _buildStatCard('Confirmed', Icons.check_circle_outline, const Color(0xFF3B82F6), 'appointments', 'confirmed', uid),
@@ -153,20 +181,30 @@ class _DoctorOverview extends StatelessWidget {
           .snapshots(),
       builder: (context, snapshot) {
         int count = snapshot.hasData ? snapshot.data!.docs.length : 0;
-        return Card(
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: color, size: 24),
+                  child: Icon(icon, color: color, size: 20),
                 ),
                 const Spacer(),
                 Text(
@@ -177,12 +215,16 @@ class _DoctorOverview extends StatelessWidget {
                     color: const Color(0xFF1E293B),
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   label,
                   style: GoogleFonts.outfit(
                     color: const Color(0xFF64748B),
-                    fontSize: 14,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

@@ -118,6 +118,16 @@ class NotificationsScreen extends StatelessWidget {
             ),
           ],
         ),
+        trailing: !isRead
+            ? Container(
+                width: 12,
+                height: 12,
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+              )
+            : null,
         onTap: () {
           // Mark as read
           FirebaseFirestore.instance
