@@ -19,6 +19,8 @@ import 'package:skin_disease1/notifications_screen.dart';
 import 'package:skin_disease1/inference_result_page.dart';
 import 'package:skin_disease1/scan_history_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:skin_disease1/doctors_map_screen.dart';
+import 'package:geolocator/geolocator.dart';
 
 class CameraGalleryPage extends StatefulWidget {
   const CameraGalleryPage({Key? key}) : super(key: key);
@@ -131,20 +133,33 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
   }
 
   Future<void> _pickImageAndScan() async {
-    // Show options for camera or gallery
+    if (kIsWeb) {
+      final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
+      if (file != null) {
+        final bytes = await file.readAsBytes();
+        setState(() {
+          _webImageBytes = bytes;
+          _pickedFile = null;
+        });
+        await _startInstantAnalysis();
+      }
+      return;
+    }
+
+    // Show options for camera or gallery on mobile
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
         return Padding(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
+              const Text(
                 'Select Image Source',
                 style: TextStyle(
                   fontSize: 18,
@@ -152,10 +167,10 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                   color: Color(0xFF2C3E50),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ListTile(
-                leading: Icon(Icons.camera_alt, color: Color(0xFF3B9AE1)),
-                title: Text('Camera'),
+                leading: const Icon(Icons.camera_alt, color: Color(0xFF3B9AE1)),
+                title: const Text('Camera'),
                 onTap: () async {
                   Navigator.pop(context);
                   if (_controller != null && _controller!.value.isInitialized) {
@@ -178,26 +193,18 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                 },
               ),
               ListTile(
-                leading: Icon(Icons.photo_library, color: Color(0xFF3B9AE1)),
-                title: Text('Gallery'),
+                leading: const Icon(Icons.photo_library, color: Color(0xFF3B9AE1)),
+                title: const Text('Gallery'),
                 onTap: () async {
                   Navigator.pop(context);
                   final XFile? file = await _picker.pickImage(
                     source: ImageSource.gallery,
                   );
                   if (file != null) {
-                    if (kIsWeb) {
-                      final bytes = await file.readAsBytes();
-                      setState(() {
-                        _webImageBytes = bytes;
-                        _pickedFile = null;
-                      });
-                    } else {
-                      setState(() {
-                        _pickedFile = file;
-                        _webImageBytes = null;
-                      });
-                    }
+                    setState(() {
+                      _pickedFile = file;
+                      _webImageBytes = null;
+                    });
                     await _showConfirmDialog();
                   }
                 },
@@ -207,6 +214,75 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
         );
       },
     );
+  }
+
+  Future<void> _startInstantAnalysis() async {
+    setState(() => _isAnalyzing = true);
+    
+    // Show a loading overlay for web
+    if (kIsWeb) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    try {
+      String? imageUrl;
+      if (_webImageBytes != null) {
+        final response = await cloudinary.uploadFile(
+          CloudinaryFile.fromByteData(
+            ByteData.view(_webImageBytes!.buffer),
+            identifier: 'web_scan_${DateTime.now().millisecondsSinceEpoch}',
+            resourceType: CloudinaryResourceType.Image,
+            folder: 'scans',
+          ),
+        );
+        imageUrl = response.secureUrl;
+      } else if (_pickedFile != null) {
+         final response = await cloudinary.uploadFile(
+          CloudinaryFile.fromFile(
+            _pickedFile!.path, 
+            resourceType: CloudinaryResourceType.Image,
+            folder: 'scans',
+          ),
+        );
+        imageUrl = response.secureUrl;
+      }
+
+      final res = await analyzeImage(
+        file: _pickedFile != null ? File(_pickedFile!.path) : null,
+        bytes: _webImageBytes,
+      );
+      
+      if (!mounted) return;
+      if (kIsWeb) Navigator.pop(context); // Close loading overlay
+
+      setState(() {
+        _lastUploadedImageUrl = imageUrl;
+        _isAnalyzing = false;
+      });
+      
+      await FirebaseFirestore.instance
+          .collection('user')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .collection('scan_history')
+          .add({
+        'disease_name': res['label'],
+        'confidence': (res['confidence'] * 100).toInt(),
+        'image_url': imageUrl,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      _showResultPage(res['label'], res['confidence']);
+    } catch (e) {
+      if (kIsWeb && mounted) Navigator.pop(context);
+      setState(() => _isAnalyzing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Analysis failed: $e')),
+      );
+    }
   }
 
   Future<void> _showConfirmDialog() async {
@@ -247,60 +323,15 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
               child: Text('Retake', style: TextStyle(color: Color(0xFF7F8C8D))),
             ),
             ElevatedButton(
-              onPressed: () async {
-                setState(() => _isAnalyzing = true);
-                try {
-                  // Upload to Cloudinary first
-                  String? imageUrl;
-                  if (_pickedFile != null) {
-                    final response = await cloudinary.uploadFile(
-                      CloudinaryFile.fromFile(_pickedFile!.path, resourceType: CloudinaryResourceType.Image),
-                    );
-                    imageUrl = response.secureUrl;
-                  } else if (_webImageBytes != null) {
-                    // Cloudinary support for bytes or use a different method if needed
-                    // For now, let's assume mobile focus or handle web bytes if possible
-                  }
-
-                  final res = await analyzeImage(
-                    file: _pickedFile != null ? File(_pickedFile!.path) : null,
-                    bytes: _webImageBytes,
-                  );
-                  
-                  if (!mounted) return;
-
-                  setState(() {
-                    _lastUploadedImageUrl = imageUrl;
-                    _isAnalyzing = false;
-                  });
-                  
-                  // Save scan to history
-                  await FirebaseFirestore.instance
-                      .collection('user')
-                      .doc(FirebaseAuth.instance.currentUser?.uid)
-                      .collection('scan_history')
-                      .add({
-                    'disease_name': res['label'], // Changed key to match dashboard expectation
-                    'confidence': (res['confidence'] * 100).toInt(),
-                    'image_url': imageUrl,
-                    'timestamp': FieldValue.serverTimestamp(),
-                  });
-
-                  _showResultPage(res['label'], res['confidence']);
-                } catch (e) {
-                  setState(() => _isAnalyzing = false);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Analysis failed: $e')),
-                  );
-                }
+              onPressed: () {
+                Navigator.of(context).pop();
+                _startInstantAnalysis();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3B9AE1),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: _isAnalyzing 
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('Analyze'),
+              child: const Text('Analyze', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -637,6 +668,74 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                       ],
                     ),
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        
+        const SizedBox(height: 30),
+        
+        // Map Integration Card
+        TweenAnimationBuilder(
+          tween: Tween<double>(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 800),
+          builder: (context, double value, child) {
+            return Opacity(
+              opacity: value,
+              child: Transform.translate(
+                offset: Offset(value * 0, (1 - value) * 20),
+                child: child,
+              ),
+            );
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [const Color(0xFF10B981).withOpacity(0.1), const Color(0xFF3B9AE1).withOpacity(0.1)],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.map_outlined, color: Color(0xFF10B981), size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Nearby Medical Centers',
+                        style: GoogleFonts.outfit(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Find clinics and specialists near your location.',
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const DoctorsMapScreen())),
+                  icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Color(0xFF10B981)),
                 ),
               ],
             ),

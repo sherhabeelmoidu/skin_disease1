@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:skin_disease1/admin_users.dart';
-import 'package:skin_disease1/admin_doctors.dart';
 import 'package:skin_disease1/admin_notifications.dart';
 import 'package:skin_disease1/admin_appointments.dart';
 import 'package:skin_disease1/doctor_approvals.dart';
@@ -18,7 +17,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   final List<Widget> _screens = [
     AdminUsers(),
-    AdminDoctors(),
     DoctorApprovals(),
     AdminAppointments(),
     AdminNotifications(),
@@ -26,11 +24,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   final List<String> _titles = [
     'User Directory',
-    'Medical Directory',
     'Doctor Verification',
     'Appointments',
     'Broadcast System',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Ensure selected index is valid
+    if (_selectedIndex >= _screens.length) {
+      _selectedIndex = 0;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,12 +96,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         child: NavigationBar(
           selectedIndex: _selectedIndex,
-          onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+          onDestinationSelected: (i) {
+            if (i >= 0 && i < _screens.length) {
+              setState(() => _selectedIndex = i);
+            }
+          },
           backgroundColor: Colors.white,
           indicatorColor: const Color(0xFF3B9AE1).withOpacity(0.1),
           destinations: const [
             NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people, color: Color(0xFF3B9AE1)), label: 'Users'),
-            NavigationDestination(icon: Icon(Icons.medical_services_outlined), selectedIcon: Icon(Icons.medical_services, color: Color(0xFF3B9AE1)), label: 'Doctors'),
             NavigationDestination(icon: Icon(Icons.how_to_reg_outlined), selectedIcon: Icon(Icons.how_to_reg, color: Color(0xFF3B9AE1)), label: 'Verify'),
             NavigationDestination(icon: Icon(Icons.event_note_outlined), selectedIcon: Icon(Icons.event_note, color: Color(0xFF3B9AE1)), label: 'Bookings'),
             NavigationDestination(icon: Icon(Icons.campaign_outlined), selectedIcon: Icon(Icons.campaign, color: Color(0xFF3B9AE1)), label: 'Alerts'),

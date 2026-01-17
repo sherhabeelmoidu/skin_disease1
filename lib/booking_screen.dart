@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:skin_disease1/notification_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class BookingScreen extends StatefulWidget {
   final Map<String, dynamic> doctorData;
@@ -20,9 +21,10 @@ class BookingScreen extends StatefulWidget {
 
 class _BookingScreenState extends State<BookingScreen> {
   DateTime? _selectedDate;
-  TimeOfDay? _selectedTime;
   final TextEditingController _notesController = TextEditingController();
   bool _isBooking = false;
+  String? _selectedSlotId;
+  String? _selectedSlotTime;
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -50,34 +52,12 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
-  Future<void> _selectTime(BuildContext context) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime ?? const TimeOfDay(hour: 9, minute: 0),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF3B9AE1),
-              onPrimary: Colors.white,
-              onSurface: Color(0xFF2C3E50),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null && picked != _selectedTime) {
-      setState(() {
-        _selectedTime = picked;
-      });
-    }
-  }
+  // Time selection is now handled by the slot grid
 
   Future<void> _bookAppointment() async {
-    if (_selectedDate == null || _selectedTime == null) {
+    if (_selectedDate == null || _selectedSlotId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select date and time')),
+        const SnackBar(content: Text('Please select a date and an available time slot')),
       );
       return;
     }
@@ -102,14 +82,38 @@ class _BookingScreenState extends State<BookingScreen> {
         'designation': widget.doctorData['designation'],
         'clinicAddress': widget.doctorData['address'],
         'date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
-        'time': _selectedTime!.format(context),
+        'time': _selectedSlotTime!,
+        'slotId': _selectedSlotId,
         'notes': _notesController.text.trim(),
         'status': 'pending', 
         'timestamp': FieldValue.serverTimestamp(),
         'type': 'offline', 
       };
 
-      await FirebaseFirestore.instance.collection('appointments').add(appointmentData);
+      // Use transaction to ensure slot availability
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentReference slotRef = FirebaseFirestore.instance
+            .collection('doctors')
+            .doc(widget.doctorId)
+            .collection('slots')
+            .doc(_selectedSlotId);
+
+        DocumentSnapshot slotSnap = await transaction.get(slotRef);
+
+        if (!slotSnap.exists || (slotSnap.data() as Map<String, dynamic>)['isBooked'] == true) {
+          throw Exception('This slot has already been booked. Please select another slot.');
+        }
+
+        // Add appointment
+        DocumentReference appRef = FirebaseFirestore.instance.collection('appointments').doc();
+        transaction.set(appRef, appointmentData);
+
+        // Mark slot as booked
+        transaction.update(slotRef, {
+          'isBooked': true,
+          'bookedBy': user.uid,
+        });
+      });
 
       // Notify the doctor
       if (widget.doctorData['uid'] != null) {
@@ -299,35 +303,107 @@ class _BookingScreenState extends State<BookingScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-            // Time Picker
-            InkWell(
-              onTap: () => _selectTime(context),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _selectedTime != null ? const Color(0xFF3B9AE1) : Colors.transparent),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.access_time, color: Color(0xFF3B9AE1)),
-                    const SizedBox(width: 16),
-                    Text(
-                      _selectedTime == null 
-                          ? 'Select Appointment Time' 
-                          : _selectedTime!.format(context),
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: _selectedTime == null ? const Color(0xFF7F8C8D) : const Color(0xFF2C3E50),
-                      ),
-                    ),
-                  ],
+            if (_selectedDate != null) ...[
+              Text(
+                'Available Slots',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF2C3E50),
                 ),
               ),
-            ),
+              const SizedBox(height: 16),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('doctors')
+                    .doc(widget.doctorId)
+                    .collection('slots')
+                    .where('date', isEqualTo: DateFormat('yyyy-MM-dd').format(_selectedDate!))
+                    .orderBy('time')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final docs = snapshot.data?.docs ?? [];
+                  final availableDocs = docs.where((d) => (d.data() as Map<String, dynamic>)['isBooked'] == false).toList();
+
+                  if (availableDocs.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(20),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange.withOpacity(0.2)),
+                      ),
+                      child: const Column(
+                        children: [
+                          Icon(Icons.event_busy, color: Colors.orange),
+                          SizedBox(height: 8),
+                          Text(
+                            'No available slots for this date.',
+                            style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500),
+                          ),
+                          Text(
+                            'Please try selecting another date.',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      childAspectRatio: 2.2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
+                    itemCount: availableDocs.length,
+                    itemBuilder: (context, index) {
+                      final slot = availableDocs[index].data() as Map<String, dynamic>;
+                      final slotId = availableDocs[index].id;
+                      final isSelected = _selectedSlotId == slotId;
+
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedSlotId = slotId;
+                            _selectedSlotTime = slot['time'];
+                          });
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSelected ? const Color(0xFF3B9AE1) : Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isSelected ? const Color(0xFF3B9AE1) : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              slot['time'],
+                              style: GoogleFonts.outfit(
+                                color: isSelected ? Colors.white : const Color(0xFF2C3E50),
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
             const SizedBox(height: 32),
 
             Text(

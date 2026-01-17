@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skin_disease1/doctors_screen.dart';
+import 'package:skin_disease1/doctors_map_screen.dart';
 
 class InferenceResultPage extends StatelessWidget {
   final String imagePath;
@@ -111,6 +112,29 @@ class InferenceResultPage extends StatelessWidget {
                         );
                       },
                       child: const Text('Find Specialist Near You'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const DoctorsMapScreen()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.map_outlined),
+                          SizedBox(width: 12),
+                          Text('View Nearby Clinics on Map'),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),

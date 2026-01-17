@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:skin_disease1/login.dart';
 import 'package:skin_disease1/service.dart';
 import 'package:image_picker/image_picker.dart';
@@ -20,6 +21,7 @@ class _SignUpState extends State<SignUp> {
   bool _obscureConfirmPassword = true;
   String _selectedRole = 'patient';
   File? _idProofImage;
+  Uint8List? _webIdProofBytes;
   String? _idProofUrl;
   bool _isUploading = false;
 
@@ -31,21 +33,41 @@ class _SignUpState extends State<SignUp> {
 
     if (image != null) {
       setState(() {
-        _idProofImage = File(image.path);
         _isUploading = true;
       });
 
       try {
-        final response = await cloudinary.uploadFile(
-          CloudinaryFile.fromFile(image.path, resourceType: CloudinaryResourceType.Image),
-        );
-        setState(() {
+        if (kIsWeb) {
+          final bytes = await image.readAsBytes();
+          setState(() {
+            _webIdProofBytes = bytes;
+          });
+          final response = await cloudinary.uploadFile(
+            CloudinaryFile.fromBytesData(
+              bytes,
+              identifier: 'proof_${DateTime.now().millisecondsSinceEpoch}',
+              resourceType: CloudinaryResourceType.Image,
+              folder: 'id_proofs',
+            ),
+          );
           _idProofUrl = response.secureUrl;
-          _isUploading = false;
-        });
+        } else {
+          setState(() {
+            _idProofImage = File(image.path);
+          });
+          final response = await cloudinary.uploadFile(
+            CloudinaryFile.fromFile(
+              image.path, 
+              resourceType: CloudinaryResourceType.Image,
+              folder: 'id_proofs',
+            ),
+          );
+          _idProofUrl = response.secureUrl;
+        }
       } catch (e) {
-        setState(() => _isUploading = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+      } finally {
+        setState(() => _isUploading = false);
       }
     }
   }
@@ -218,10 +240,12 @@ class _SignUpState extends State<SignUp> {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
                       ),
-                      child: _idProofImage != null
+                      child: (_idProofImage != null || _webIdProofBytes != null)
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(20),
-                              child: Image.file(_idProofImage!, fit: BoxFit.cover),
+                              child: kIsWeb 
+                                ? Image.memory(_webIdProofBytes!, fit: BoxFit.cover)
+                                : Image.file(_idProofImage!, fit: BoxFit.cover),
                             )
                           : Column(
                               mainAxisAlignment: MainAxisAlignment.center,

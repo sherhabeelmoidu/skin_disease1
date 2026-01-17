@@ -6,6 +6,10 @@ import 'package:skin_disease1/notification_service.dart';
 import 'package:skin_disease1/notifications_screen.dart';
 import 'package:skin_disease1/main.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:skin_disease1/doctor_slots_screen.dart';
+import 'package:skin_disease1/doctor_professional_details_screen.dart';
+import 'package:skin_disease1/doctor_change_password_screen.dart';
+import 'package:skin_disease1/doctor_support_center_screen.dart';
 
 class DoctorDashboard extends StatefulWidget {
   @override
@@ -216,7 +220,7 @@ class _DoctorOverview extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const DoctorSlotsScreen())),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFF2C3E50),
@@ -347,8 +351,22 @@ class _DoctorAppointments extends StatelessWidget {
   }
 
   void _update(String id, String status, String userId, String? doctorName) async {
-    await FirebaseFirestore.instance.collection('appointments').doc(id).update({'status': status});
+    final docRef = FirebaseFirestore.instance.collection('appointments').doc(id);
+    final docSnap = await docRef.get();
+    final data = docSnap.data() as Map<String, dynamic>?;
+
+    await docRef.update({'status': status});
     
+    // If cancelled, free up the slot
+    if (status == 'cancelled' && data != null && data['slotId'] != null) {
+      await FirebaseFirestore.instance
+          .collection('doctors')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .collection('slots')
+          .doc(data['slotId'])
+          .update({'isBooked': false, 'bookedBy': null});
+    }
+
     await NotificationService.sendNotification(
       userId: userId,
       title: 'Appointment $status',
@@ -467,7 +485,7 @@ class _DoctorSettingsState extends State<_DoctorSettings> {
           const SizedBox(height: 24),
           _buildOption(Icons.edit_note_outlined, 'Professional Details'),
           _buildOption(Icons.access_time_outlined, 'Working Hours'),
-          _buildOption(Icons.history_outlined, 'Past Consultations'),
+          _buildOption(Icons.lock_reset_outlined, 'Change Password'),
           _buildOption(Icons.help_outline, 'Support Center'),
         ],
       ),
@@ -481,7 +499,17 @@ class _DoctorSettingsState extends State<_DoctorSettings> {
         leading: Icon(icon, color: const Color(0xFF3B9AE1)),
         title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
         trailing: const Icon(Icons.chevron_right, size: 20, color: Color(0xFF94A3B8)),
-        onTap: () {},
+        onTap: () {
+          if (title == 'Working Hours') {
+             Navigator.push(context, MaterialPageRoute(builder: (context) => const DoctorSlotsScreen()));
+          } else if (title == 'Professional Details') {
+             Navigator.push(context, MaterialPageRoute(builder: (context) => const DoctorProfessionalDetailsScreen()));
+          } else if (title == 'Change Password') {
+             Navigator.push(context, MaterialPageRoute(builder: (context) => const DoctorChangePasswordScreen()));
+          } else if (title == 'Support Center') {
+             Navigator.push(context, MaterialPageRoute(builder: (context) => const DoctorSupportCenterScreen()));
+          }
+        },
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
@@ -29,6 +30,7 @@ class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
   bool _gettingLocation = false;
 
   File? _imageFile;
+  Uint8List? _webImageBytes;
   String? _imageUrl;
   bool _isUploading = false;
   bool _isLoading = false;
@@ -69,21 +71,41 @@ class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
 
     if (image != null) {
       setState(() {
-        _imageFile = File(image.path);
         _isUploading = true;
       });
 
       try {
-        final response = await cloudinary.uploadFile(
-          CloudinaryFile.fromFile(image.path, resourceType: CloudinaryResourceType.Image),
-        );
-        setState(() {
+        if (kIsWeb) {
+          final bytes = await image.readAsBytes();
+          setState(() {
+            _webImageBytes = bytes;
+          });
+          final response = await cloudinary.uploadFile(
+            CloudinaryFile.fromBytesData(
+              bytes,
+              identifier: 'doc_${DateTime.now().millisecondsSinceEpoch}',
+              resourceType: CloudinaryResourceType.Image,
+              folder: 'profiles',
+            ),
+          );
           _imageUrl = response.secureUrl;
-          _isUploading = false;
-        });
+        } else {
+          setState(() {
+            _imageFile = File(image.path);
+          });
+          final response = await cloudinary.uploadFile(
+            CloudinaryFile.fromFile(
+              image.path, 
+              resourceType: CloudinaryResourceType.Image,
+              folder: 'profiles',
+            ),
+          );
+          _imageUrl = response.secureUrl;
+        }
       } catch (e) {
-        setState(() => _isUploading = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+      } finally {
+        setState(() => _isUploading = false);
       }
     }
   }
@@ -168,8 +190,12 @@ class _DoctorProfileSetupScreenState extends State<DoctorProfileSetupScreen> {
                     boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
                     border: Border.all(color: Colors.white, width: 4),
                   ),
-                  child: _imageFile != null
-                      ? ClipRRect(borderRadius: BorderRadius.circular(60), child: Image.file(_imageFile!, fit: BoxFit.cover))
+                  child: (_imageFile != null || _webImageBytes != null)
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(60), 
+                          child: kIsWeb 
+                            ? Image.memory(_webImageBytes!, fit: BoxFit.cover)
+                            : Image.file(_imageFile!, fit: BoxFit.cover))
                       : _imageUrl != null
                           ? ClipRRect(borderRadius: BorderRadius.circular(60), child: Image.network(_imageUrl!, fit: BoxFit.cover))
                           : Icon(Icons.add_a_photo, size: 40, color: Color(0xFF3B9AE1)),

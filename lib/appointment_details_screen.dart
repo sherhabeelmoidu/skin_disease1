@@ -59,6 +59,60 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
     }
   }
 
+  Future<void> _cancelAppointment() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Appointment'),
+        content: const Text('Are you sure you want to cancel this appointment? This will free up the slot for other patients.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true), 
+            child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final docId = widget.appointmentId;
+      final doctorId = widget.appointmentData['doctorId'];
+      final slotId = widget.appointmentData['slotId'];
+
+      await FirebaseFirestore.instance.collection('appointments').doc(docId).update({
+        'status': 'cancelled',
+      });
+
+      if (doctorId != null && slotId != null) {
+        await FirebaseFirestore.instance
+            .collection('doctors')
+            .doc(doctorId)
+            .collection('slots')
+            .doc(slotId)
+            .update({
+          'isBooked': false,
+          'bookedBy': null,
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Appointment cancelled successfully.')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to cancel: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final status = widget.appointmentData['status'] ?? 'pending';
@@ -254,9 +308,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
               const SizedBox(height: 20),
               Center(
                 child: TextButton.icon(
-                  onPressed: () {
-                    // TODO: Implementation for cancelling
-                  },
+                  onPressed: _cancelAppointment,
                   icon: const Icon(Icons.cancel_outlined, color: Colors.red),
                   label: const Text('Cancel Appointment', style: TextStyle(color: Colors.red)),
                 ),
