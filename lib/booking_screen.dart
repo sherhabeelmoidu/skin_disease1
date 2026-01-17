@@ -265,7 +265,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
             ),
             const SizedBox(height: 32),
-
             Text(
               'Select Date & Time',
               style: TextStyle(
@@ -275,8 +274,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Date Picker
             InkWell(
               onTap: () => _selectDate(context),
               child: Container(

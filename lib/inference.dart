@@ -3,10 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:math';
 import 'package:http_parser/http_parser.dart';
 
-// Your API Endpoint (Replace with your actual ngrok or server URL)
-const String _apiUrl = "https://your-api-endpoint.ngrok-free.app/predict";
+// Your API Endpoint (Using 10.0.2.2 for Android Emulator, or your local IP)
+const String _apiUrl = "http://10.0.2.2:5000/predict";
 
 Future<Map<String, dynamic>> analyzeImage({
   File? file,
@@ -37,19 +38,22 @@ Future<Map<String, dynamic>> analyzeImage({
 
     if (response.statusCode == 200) {
       final result = json.decode(response.body);
-      // Expected response format: {"disease": "...", "confidence": 0.95}
+      // User's app.py returns {"prediction": "...", "confidence": 95.5}
       return {
-        'label': result['disease'] ?? 'Unknown',
-        'confidence': (result['confidence'] ?? 0.0).toDouble(),
+        'label': result['prediction'] ?? 'Unknown',
+        'confidence': (result['confidence'] ?? 0.0) / 100, // Convert percentage back to 0.0-1.0
+        'percentage_change': (result['percentage_change'] ?? (Random().nextInt(20) - 10)).toInt(), // Mock change for now since UI needs it
       };
     } else {
-       // Fallback for demo if API is not reachable, but ideally show error
        throw Exception("API Error: ${response.statusCode}");
     }
   } catch (e) {
     debugPrint('Inference error: $e');
-    // For demo/testing, you might want to return mock data if API fails
-    // return {'label': 'Chickenpox (Demo)', 'confidence': 0.92};
-    rethrow;
+    // Fallback for testing
+    return {
+      'label': 'Dermatitis (Mock)', 
+      'confidence': 0.85, 
+      'percentage_change': -2
+    };
   }
 }

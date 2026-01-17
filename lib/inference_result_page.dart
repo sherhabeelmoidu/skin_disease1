@@ -7,12 +7,14 @@ class InferenceResultPage extends StatelessWidget {
   final String imagePath;
   final String result;
   final double confidence;
+  final int? percentageChange;
   final String? imageUrl;
 
   const InferenceResultPage({
     required this.imagePath,
     required this.result,
     required this.confidence,
+    this.percentageChange,
     this.imageUrl,
   });
 
@@ -79,6 +81,9 @@ class InferenceResultPage extends StatelessWidget {
                           ],
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      _buildChangeIndicator(),
+                      const SizedBox(width: 12),
                       _buildConfidenceIndicator(),
                     ],
                   ),
@@ -148,6 +153,51 @@ class InferenceResultPage extends StatelessWidget {
                   const SizedBox(height: 40),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChangeIndicator() {
+    if (percentageChange == null) return const SizedBox.shrink();
+    
+    final isImprovement = percentageChange! < 0;
+    final absChange = percentageChange!.abs();
+    final color = isImprovement ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    final icon = isImprovement ? Icons.trending_down : Icons.trending_up;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 4),
+              Text(
+                '$absChange%',
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            isImprovement ? 'Improvement' : 'Spread',
+            style: GoogleFonts.outfit(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: color,
             ),
           ),
         ],

@@ -83,14 +83,15 @@ class ScanHistoryScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () {
+                onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => InferenceResultPage(
                   imagePath: '',
                   result: data['disease_name'] ?? 'Unknown',
-                  confidence: (data['confidence'] ?? 0).toDouble(),
+                  confidence: (data['confidence'] ?? 0).toDouble() / 100,
+                  percentageChange: data['percentage_change'],
                   imageUrl: data['image_url'],
                 ),
               ),
@@ -149,25 +150,52 @@ class ScanHistoryScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: (data['confidence'] ?? 0) > 70
-                              ? const Color(0xFFECFDF5)
-                              : const Color(0xFFFFF7ED),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${data['confidence'] ?? 0}% Confidence',
-                          style: GoogleFonts.outfit(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: (data['confidence'] ?? 0) > 70
-                                ? const Color(0xFF059669)
-                                : const Color(0xFFD97706),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: (data['confidence'] ?? 0) > 70
+                                  ? const Color(0xFFECFDF5)
+                                  : const Color(0xFFFFF7ED),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${data['confidence'] ?? 0}% Conf.',
+                              style: GoogleFonts.outfit(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: (data['confidence'] ?? 0) > 70
+                                    ? const Color(0xFF059669)
+                                    : const Color(0xFFD97706),
+                              ),
+                            ),
                           ),
-                        ),
+                          if (data['percentage_change'] != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: (data['percentage_change'] ?? 0) < 0
+                                    ? const Color(0xFFECFDF5)
+                                    : const Color(0xFFFEF2F2),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${(data['percentage_change'] ?? 0).abs()}% ${(data['percentage_change'] ?? 0) < 0 ? 'Improve.' : 'Spread'}',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: (data['percentage_change'] ?? 0) < 0
+                                      ? const Color(0xFF059669)
+                                      : const Color(0xFFEF4444),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),

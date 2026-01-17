@@ -272,11 +272,12 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
           .add({
         'disease_name': res['label'],
         'confidence': (res['confidence'] * 100).toInt(),
+        'percentage_change': res['percentage_change'],
         'image_url': imageUrl,
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      _showResultPage(res['label'], res['confidence']);
+      _showResultPage(res['label'], res['confidence'], res['percentage_change']);
     } catch (e) {
       if (kIsWeb && mounted) Navigator.pop(context);
       setState(() => _isAnalyzing = false);
@@ -340,7 +341,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
     );
   }
 
-  void _showResultPage(String label, double confidence) {
+  void _showResultPage(String label, double confidence, int percentageChange) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -348,6 +349,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
           imagePath: '',
           result: label,
           confidence: confidence,
+          percentageChange: percentageChange,
           imageUrl: _lastUploadedImageUrl, // We should ensure this is set
         ),
       ),
