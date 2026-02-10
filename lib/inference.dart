@@ -6,14 +6,17 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http_parser/http_parser.dart';
 
-// Your API Endpoint (Using 10.0.2.2 for Android Emulator, or your local IP)
-const String _apiUrl = "http://10.0.2.2:5000/predict";
+// Replace this with your laptop's IP address (e.g., "192.168.1.10")
+// You can find your IP by running 'ipconfig' (Windows) or 'ifconfig' (Mac/Linux)
+const String _laptopIp = "192.168.1.34"; // User's laptop IP address
+const String _apiUrl = "http://$_laptopIp:5000/predict";
 
 Future<Map<String, dynamic>> analyzeImage({
   File? file,
   Uint8List? bytes,
 }) async {
   try {
+    debugPrint('Starting analysis at $_apiUrl');
     var request = http.MultipartRequest('POST', Uri.parse(_apiUrl));
 
     if (file != null) {
@@ -33,27 +36,26 @@ Future<Map<String, dynamic>> analyzeImage({
       throw Exception("No image provided");
     }
 
-    var streamedResponse = await request.send();
+    var streamedResponse = await request.send().timeout(
+      const Duration(seconds: 15),
+      onTimeout: () => throw Exception("Connection timed out. Check if your backend is running at $_apiUrl"),
+    );
+    
     var response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 200) {
       final result = json.decode(response.body);
-      // User's app.py returns {"prediction": "...", "confidence": 95.5}
       return {
         'label': result['prediction'] ?? 'Unknown',
-        'confidence': (result['confidence'] ?? 0.0) / 100, // Convert percentage back to 0.0-1.0
-        'percentage_change': (result['percentage_change'] ?? (Random().nextInt(20) - 10)).toInt(), // Mock change for now since UI needs it
+        'confidence': (result['confidence'] ?? 0.0) / 100,
+        'percentage_change': (result['percentage_change'] ?? (Random().nextInt(20) - 10)).toInt(),
       };
     } else {
-       throw Exception("API Error: ${response.statusCode}");
+       throw Exception("API Error (${response.statusCode}): ${response.body}");
     }
   } catch (e) {
     debugPrint('Inference error: $e');
-    // Fallback for testing
-    return {
-      'label': 'Dermatitis (Mock)', 
-      'confidence': 0.85, 
-      'percentage_change': -2
-    };
+    // Re-throw so the UI can handle it and show a snackbar
+    rethrow;
   }
 }

@@ -220,69 +220,126 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
   Future<void> _startInstantAnalysis() async {
     setState(() => _isAnalyzing = true);
     
-    // Show a loading overlay for web
-    if (kIsWeb) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-    }
+    // Show a loading overlay for both web and mobile
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3B9AE1)),
+                strokeWidth: 3,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Analyzing Image...',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This may take a few seconds',
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
 
     try {
       String? imageUrl;
-      if (_webImageBytes != null) {
-        final response = await cloudinary.uploadFile(
-          CloudinaryFile.fromByteData(
-            ByteData.view(_webImageBytes!.buffer),
-            identifier: 'web_scan_${DateTime.now().millisecondsSinceEpoch}',
-            resourceType: CloudinaryResourceType.Image,
-            folder: 'scans',
-          ),
-        );
-        imageUrl = response.secureUrl;
-      } else if (_pickedFile != null) {
-         final response = await cloudinary.uploadFile(
-          CloudinaryFile.fromFile(
-            _pickedFile!.path, 
-            resourceType: CloudinaryResourceType.Image,
-            folder: 'scans',
-          ),
-        );
-        imageUrl = response.secureUrl;
+      
+      // 1. Try Cloudinary Upload
+      try {
+        if (_webImageBytes != null) {
+          final response = await cloudinary.uploadFile(
+            CloudinaryFile.fromByteData(
+              ByteData.view(_webImageBytes!.buffer),
+              identifier: 'web_scan_${DateTime.now().millisecondsSinceEpoch}',
+              resourceType: CloudinaryResourceType.Image,
+              folder: 'scans',
+            ),
+          ).timeout(const Duration(seconds: 15));
+          imageUrl = response.secureUrl;
+        } else if (_pickedFile != null) {
+           final response = await cloudinary.uploadFile(
+            CloudinaryFile.fromFile(
+              _pickedFile!.path, 
+              resourceType: CloudinaryResourceType.Image,
+              folder: 'scans',
+            ),
+          ).timeout(const Duration(seconds: 15));
+          imageUrl = response.secureUrl;
+        }
+      } catch (e) {
+        debugPrint('Cloudinary upload failed: $e');
+        // We continue even if upload fails, to show the analysis result
       }
 
+      // 2. Perform AI Analysis
       final res = await analyzeImage(
         file: _pickedFile != null ? File(_pickedFile!.path) : null,
         bytes: _webImageBytes,
       );
       
       if (!mounted) return;
-      if (kIsWeb) Navigator.pop(context); // Close loading overlay
+      Navigator.pop(context); // Close loading overlay
 
       setState(() {
         _lastUploadedImageUrl = imageUrl;
         _isAnalyzing = false;
       });
       
-      await FirebaseFirestore.instance
-          .collection('user')
-          .doc(FirebaseAuth.instance.currentUser?.uid)
-          .collection('scan_history')
-          .add({
-        'disease_name': res['label'],
-        'confidence': (res['confidence'] * 100).toInt(),
-        'percentage_change': res['percentage_change'],
-        'image_url': imageUrl,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+      // 3. Save to History (Optional non-blocking)
+      try {
+        await FirebaseFirestore.instance
+            .collection('user')
+            .doc(FirebaseAuth.instance.currentUser?.uid)
+            .collection('scan_history')
+            .add({
+          'disease_name': res['label'],
+          'confidence': (res['confidence'] * 100).toInt(),
+          'percentage_change': res['percentage_change'],
+          'image_url': imageUrl,
+          'timestamp': FieldValue.serverTimestamp(),
+        }).timeout(const Duration(seconds: 5));
+      } catch (e) {
+        debugPrint('Failed to save to history: $e');
+      }
 
+      // 4. Show Result Page
       _showResultPage(res['label'], res['confidence'], res['percentage_change']);
+      
     } catch (e) {
-      if (kIsWeb && mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context); // Close loading overlay
       setState(() => _isAnalyzing = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Analysis failed: $e')),
+        SnackBar(
+          content: Text('Critical error: $e'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
