@@ -4,8 +4,9 @@ import 'package:skin_disease1/admin_notifications.dart';
 import 'package:skin_disease1/admin_appointments.dart';
 import 'package:skin_disease1/doctor_approvals.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:skin_disease1/firstopen.dart';
+import 'package:skin_disease1/login.dart'; // Corrected import
 import 'package:google_fonts/google_fonts.dart';
+import 'package:skin_disease1/utils/responsive_helper.dart';
 
 class AdminDashboard extends StatefulWidget {
   @override
@@ -32,7 +33,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   void initState() {
     super.initState();
-    // Ensure selected index is valid
     if (_selectedIndex >= _screens.length) {
       _selectedIndex = 0;
     }
@@ -53,7 +53,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         title: Text(
           _titles[_selectedIndex],
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.logout_outlined, color: Colors.white),
@@ -79,9 +82,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ],
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        child: _screens[_selectedIndex],
+      body: Center(
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: ResponsiveHelper.getMaxWidth(context),
+          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: _screens[_selectedIndex],
+          ),
+        ),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -104,10 +114,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
           backgroundColor: Colors.white,
           indicatorColor: const Color(0xFF3B9AE1).withOpacity(0.1),
           destinations: const [
-            NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people, color: Color(0xFF3B9AE1)), label: 'Users'),
-            NavigationDestination(icon: Icon(Icons.how_to_reg_outlined), selectedIcon: Icon(Icons.how_to_reg, color: Color(0xFF3B9AE1)), label: 'Verify'),
-            NavigationDestination(icon: Icon(Icons.event_note_outlined), selectedIcon: Icon(Icons.event_note, color: Color(0xFF3B9AE1)), label: 'Bookings'),
-            NavigationDestination(icon: Icon(Icons.campaign_outlined), selectedIcon: Icon(Icons.campaign, color: Color(0xFF3B9AE1)), label: 'Alerts'),
+            NavigationDestination(
+              icon: Icon(Icons.people_outline),
+              selectedIcon: Icon(Icons.people, color: Color(0xFF3B9AE1)),
+              label: 'Users',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.how_to_reg_outlined),
+              selectedIcon: Icon(Icons.how_to_reg, color: Color(0xFF3B9AE1)),
+              label: 'Verify',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.event_note_outlined),
+              selectedIcon: Icon(Icons.event_note, color: Color(0xFF3B9AE1)),
+              label: 'Bookings',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.campaign_outlined),
+              selectedIcon: Icon(Icons.campaign, color: Color(0xFF3B9AE1)),
+              label: 'Alerts',
+            ),
           ],
         ),
       ),
@@ -118,8 +144,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Admin Logout', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: const Text('Are you sure you want to exit the admin control panel?'),
+        title: Text(
+          'Admin Logout',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Are you sure you want to exit the admin control panel?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -131,11 +162,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('isAdminLoggedIn', false);
               Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => Login()),
+                MaterialPageRoute(builder: (context) => LoginApp()),
                 (route) => false,
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE11D48)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE11D48),
+            ),
             child: const Text('Logout'),
           ),
         ],

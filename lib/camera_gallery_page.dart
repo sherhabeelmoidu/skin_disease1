@@ -22,6 +22,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:skin_disease1/doctors_map_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:skin_disease1/booking_history_screen.dart';
+import 'package:skin_disease1/utils/responsive_helper.dart';
 
 class CameraGalleryPage extends StatefulWidget {
   const CameraGalleryPage({Key? key}) : super(key: key);
@@ -43,7 +44,11 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
   String? _lastUploadedImageUrl;
   bool _isAnalyzing = false;
 
-  final cloudinary = CloudinaryPublic('dgn6dvfzm', 'skindisease_images', cache: false);
+  final cloudinary = CloudinaryPublic(
+    'dgn6dvfzm',
+    'skindisease_images',
+    cache: false,
+  );
 
   final ImagePicker _picker = ImagePicker();
 
@@ -66,7 +71,8 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
     _cameraError = null;
     if (kIsWeb) {
       setState(() {
-        _cameraError = 'Camera preview is not supported on web. Use gallery upload instead.';
+        _cameraError =
+            'Camera preview is not supported on web. Use gallery upload instead.';
         _isCameraInitialized = false;
       });
       return;
@@ -78,7 +84,8 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
       if (!status.isGranted) {
         setState(() {
           _isCameraInitialized = false;
-          _cameraError = 'Camera permission denied. Grant permission in app settings.';
+          _cameraError =
+              'Camera permission denied. Grant permission in app settings.';
         });
         return;
       }
@@ -182,7 +189,9 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                     });
                     await _showConfirmDialog();
                   } else {
-                    final XFile? file = await _picker.pickImage(source: ImageSource.camera);
+                    final XFile? file = await _picker.pickImage(
+                      source: ImageSource.camera,
+                    );
                     if (file != null) {
                       setState(() {
                         _pickedFile = file;
@@ -194,7 +203,10 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library, color: Color(0xFF3B9AE1)),
+                leading: const Icon(
+                  Icons.photo_library,
+                  color: Color(0xFF3B9AE1),
+                ),
                 title: const Text('Gallery'),
                 onTap: () async {
                   Navigator.pop(context);
@@ -219,7 +231,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
 
   Future<void> _startInstantAnalysis() async {
     setState(() => _isAnalyzing = true);
-    
+
     // Show a loading overlay for both web and mobile
     showDialog(
       context: context,
@@ -231,10 +243,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 20,
-              ),
+              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20),
             ],
           ),
           child: Column(
@@ -269,27 +278,32 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
 
     try {
       String? imageUrl;
-      
+
       // 1. Try Cloudinary Upload
       try {
         if (_webImageBytes != null) {
-          final response = await cloudinary.uploadFile(
-            CloudinaryFile.fromByteData(
-              ByteData.view(_webImageBytes!.buffer),
-              identifier: 'web_scan_${DateTime.now().millisecondsSinceEpoch}',
-              resourceType: CloudinaryResourceType.Image,
-              folder: 'scans',
-            ),
-          ).timeout(const Duration(seconds: 15));
+          final response = await cloudinary
+              .uploadFile(
+                CloudinaryFile.fromByteData(
+                  ByteData.view(_webImageBytes!.buffer),
+                  identifier:
+                      'web_scan_${DateTime.now().millisecondsSinceEpoch}',
+                  resourceType: CloudinaryResourceType.Image,
+                  folder: 'scans',
+                ),
+              )
+              .timeout(const Duration(seconds: 15));
           imageUrl = response.secureUrl;
         } else if (_pickedFile != null) {
-           final response = await cloudinary.uploadFile(
-            CloudinaryFile.fromFile(
-              _pickedFile!.path, 
-              resourceType: CloudinaryResourceType.Image,
-              folder: 'scans',
-            ),
-          ).timeout(const Duration(seconds: 15));
+          final response = await cloudinary
+              .uploadFile(
+                CloudinaryFile.fromFile(
+                  _pickedFile!.path,
+                  resourceType: CloudinaryResourceType.Image,
+                  folder: 'scans',
+                ),
+              )
+              .timeout(const Duration(seconds: 15));
           imageUrl = response.secureUrl;
         }
       } catch (e) {
@@ -302,7 +316,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
         file: _pickedFile != null ? File(_pickedFile!.path) : null,
         bytes: _webImageBytes,
       );
-      
+
       if (!mounted) return;
       Navigator.pop(context); // Close loading overlay
 
@@ -310,7 +324,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
         _lastUploadedImageUrl = imageUrl;
         _isAnalyzing = false;
       });
-      
+
       // 3. Save to History (Optional non-blocking)
       try {
         await FirebaseFirestore.instance
@@ -318,19 +332,23 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
             .doc(FirebaseAuth.instance.currentUser?.uid)
             .collection('scan_history')
             .add({
-          'disease_name': res['label'],
-          'confidence': (res['confidence'] * 100).toInt(),
-          'percentage_change': res['percentage_change'],
-          'image_url': imageUrl,
-          'timestamp': FieldValue.serverTimestamp(),
-        }).timeout(const Duration(seconds: 5));
+              'disease_name': res['label'],
+              'confidence': (res['confidence'] * 100).toInt(),
+              'percentage_change': res['percentage_change'],
+              'image_url': imageUrl,
+              'timestamp': FieldValue.serverTimestamp(),
+            })
+            .timeout(const Duration(seconds: 5));
       } catch (e) {
         debugPrint('Failed to save to history: $e');
       }
 
       // 4. Show Result Page
-      _showResultPage(res['label'], res['confidence'], res['percentage_change']);
-      
+      _showResultPage(
+        res['label'],
+        res['confidence'],
+        res['percentage_change'],
+      );
     } catch (e) {
       if (mounted) Navigator.pop(context); // Close loading overlay
       setState(() => _isAnalyzing = false);
@@ -350,25 +368,33 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Confirm Image', style: TextStyle(color: Color(0xFF2C3E50))),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Confirm Image',
+            style: TextStyle(color: Color(0xFF2C3E50)),
+          ),
           content: SizedBox(
             width: double.maxFinite,
             child: _webImageBytes != null
                 ? Image.memory(_webImageBytes!, fit: BoxFit.contain)
                 : (_pickedFile != null && !kIsWeb
-                    ? Image.file(File(_pickedFile!.path), fit: BoxFit.contain)
-                    : (_pickedFile != null && kIsWeb
-                        ? FutureBuilder<Uint8List>(
-                            future: _pickedFile!.readAsBytes(),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData) {
-                                return Image.memory(snapshot.data!, fit: BoxFit.contain);
-                              }
-                              return CircularProgressIndicator();
-                            },
-                          )
-                        : const SizedBox())),
+                      ? Image.file(File(_pickedFile!.path), fit: BoxFit.contain)
+                      : (_pickedFile != null && kIsWeb
+                            ? FutureBuilder<Uint8List>(
+                                future: _pickedFile!.readAsBytes(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData) {
+                                    return Image.memory(
+                                      snapshot.data!,
+                                      fit: BoxFit.contain,
+                                    );
+                                  }
+                                  return CircularProgressIndicator();
+                                },
+                              )
+                            : const SizedBox())),
           ),
           actions: [
             TextButton(
@@ -388,9 +414,17 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3B9AE1),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text('Analyze', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Analyze',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
@@ -481,7 +515,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
               ),
             ),
           ),
-          
+
           SafeArea(
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
@@ -494,7 +528,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                   ),
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 100), 
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
                   sliver: _buildHistoryList(),
                 ),
               ],
@@ -525,10 +559,22 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
           selectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w600),
           unselectedLabelStyle: GoogleFonts.outfit(),
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Bookings'),
-            BottomNavigationBarItem(icon: Icon(Icons.medical_services_outlined), label: 'Doctors'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_filled),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_month),
+              label: 'Bookings',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.medical_services_outlined),
+              label: 'Doctors',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              label: 'Profile',
+            ),
           ],
         ),
       ),
@@ -556,8 +602,24 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
         ),
       ),
       actions: [
-        _buildAppBarAction(Icons.notifications_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()))),
-        _buildAppBarAction(Icons.chat_bubble_outline, () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatList(showAppBar: true)))),
+        _buildAppBarAction(
+          Icons.notifications_outlined,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const NotificationsScreen(),
+            ),
+          ),
+        ),
+        _buildAppBarAction(
+          Icons.chat_bubble_outline,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ChatList(showAppBar: true),
+            ),
+          ),
+        ),
         const SizedBox(width: 8),
       ],
       flexibleSpace: FlexibleSpaceBar(
@@ -591,247 +653,292 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
   }
 
   Widget _buildBody() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 10),
-        // Greeting Section with Fade Animation
-        TweenAnimationBuilder(
-          tween: Tween<double>(begin: 0, end: 1),
-          duration: const Duration(milliseconds: 800),
-          builder: (context, double value, child) {
-            return Opacity(
-              opacity: value,
-              child: Transform.translate(
-                offset: Offset(0, 20 * (1 - value)),
-                child: child,
-              ),
-            );
-          },
-          child: StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('user')
-                .doc(FirebaseAuth.instance.currentUser?.uid)
-                .snapshots(),
-            builder: (context, snapshot) {
-              String userName = 'User';
-              if (snapshot.hasData && snapshot.data != null) {
-                final data = snapshot.data!.data() as Map<String, dynamic>?;
-                userName = data?['name'] ?? 'User';
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hello, $userName! 👋',
-                    style: GoogleFonts.outfit(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white.withOpacity(0.95),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'How is your skin feeling today?',
-                    style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.8),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+    return Center(
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: ResponsiveHelper.getMaxWidth(context),
         ),
-        
-        const SizedBox(height: 30),
-        
-        // Main Scan Card with Scale Animation
-        TweenAnimationBuilder(
-          tween: Tween<double>(begin: 0.9, end: 1),
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeOutBack,
-          builder: (context, double value, child) {
-            return Transform.scale(
-              scale: value,
-              child: child,
-            );
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF3B9AE1).withOpacity(0.2),
-                  blurRadius: 30,
-                  offset: const Offset(0, 15),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF3B9AE1).withOpacity(0.1),
-                    shape: BoxShape.circle,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 10),
+            // Greeting Section with Fade Animation
+            TweenAnimationBuilder(
+              tween: Tween<double>(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 800),
+              builder: (context, double value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, 20 * (1 - value)),
+                    child: child,
                   ),
-                  child: const Icon(Icons.document_scanner_outlined, color: Color(0xFF3B9AE1), size: 48),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'AI Skin Analysis',
-                  style: GoogleFonts.outfit(
-                    color: const Color(0xFF1E293B),
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Take a photo or upload from gallery to get instant insights about your skin condition.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(
-                    color: const Color(0xFF64748B),
-                    fontSize: 15,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _pickImageAndScan,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3B9AE1),
-                      foregroundColor: Colors.white,
-                      elevation: 8,
-                      shadowColor: const Color(0xFF3B9AE1).withOpacity(0.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.camera_alt_outlined),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Start Assessment',
-                          style: GoogleFonts.outfit(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        
-        const SizedBox(height: 30),
-        
-        // Map Integration Card
-        TweenAnimationBuilder(
-          tween: Tween<double>(begin: 0, end: 1),
-          duration: const Duration(milliseconds: 800),
-          builder: (context, double value, child) {
-            return Opacity(
-              opacity: value,
-              child: Transform.translate(
-                offset: Offset(value * 0, (1 - value) * 20),
-                child: child,
-              ),
-            );
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [const Color(0xFF10B981).withOpacity(0.1), const Color(0xFF3B9AE1).withOpacity(0.1)],
-              ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.map_outlined, color: Color(0xFF10B981), size: 28),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
+                );
+              },
+              child: StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('user')
+                    .doc(FirebaseAuth.instance.currentUser?.uid)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  String userName = 'User';
+                  if (snapshot.hasData && snapshot.data != null) {
+                    final data = snapshot.data!.data() as Map<String, dynamic>?;
+                    userName = data?['name'] ?? 'User';
+                  }
+                  return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Nearby Medical Centers',
+                        'Hello, $userName! 👋',
                         style: GoogleFonts.outfit(
-                          fontSize: 18,
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            28,
+                          ),
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E293B),
+                          color: Colors.white.withOpacity(0.95),
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
-                        'Find clinics and specialists near your location.',
+                        'How is your skin feeling today?',
                         style: GoogleFonts.outfit(
-                          fontSize: 14,
-                          color: const Color(0xFF64748B),
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            context,
+                            16,
+                          ),
+                          color: Colors.white.withOpacity(0.8),
                         ),
                       ),
                     ],
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 30),
+
+            // Main Scan Card with Scale Animation
+            TweenAnimationBuilder(
+              tween: Tween<double>(begin: 0.9, end: 1),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOutBack,
+              builder: (context, double value, child) {
+                return Transform.scale(scale: value, child: child);
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF3B9AE1).withOpacity(0.2),
+                      blurRadius: 30,
+                      offset: const Offset(0, 15),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3B9AE1).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.document_scanner_outlined,
+                        color: Color(0xFF3B9AE1),
+                        size: 48,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'AI Skin Analysis',
+                      style: GoogleFonts.outfit(
+                        color: const Color(0xFF1E293B),
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          24,
+                        ),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Take a photo or upload from gallery to get instant insights about your skin condition.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                        color: const Color(0xFF64748B),
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          15,
+                        ),
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _pickImageAndScan,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF3B9AE1),
+                          foregroundColor: Colors.white,
+                          elevation: 8,
+                          shadowColor: const Color(0xFF3B9AE1).withOpacity(0.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.camera_alt_outlined),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Start Assessment',
+                              style: GoogleFonts.outfit(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 30),
+
+            // Map Integration Card
+            TweenAnimationBuilder(
+              tween: Tween<double>(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 800),
+              builder: (context, double value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(value * 0, (1 - value) * 20),
+                    child: child,
+                  ),
+                );
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF10B981).withOpacity(0.1),
+                      const Color(0xFF3B9AE1).withOpacity(0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: const Color(0xFF10B981).withOpacity(0.2),
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const DoctorsMapScreen())),
-                  icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Color(0xFF10B981)),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.map_outlined,
+                        color: Color(0xFF10B981),
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Nearby Medical Centers',
+                            style: GoogleFonts.outfit(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1E293B),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Find clinics and specialists near your location.',
+                            style: GoogleFonts.outfit(
+                              fontSize: 14,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const DoctorsMapScreen(),
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 18,
+                        color: Color(0xFF10B981),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            // Recent Activity Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recent History',
+                  style: GoogleFonts.outfit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ScanHistoryScreen(),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    'View All',
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFF3B9AE1),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-        ),
-        
-        const SizedBox(height: 40),
-        
-        // Recent Activity Header
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Recent History',
-              style: GoogleFonts.outfit(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF1E293B),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                 Navigator.push(context, MaterialPageRoute(builder: (context) => const ScanHistoryScreen()));
-              },
-              child: Text(
-                'View All',
-                style: GoogleFonts.outfit(
-                  color: const Color(0xFF3B9AE1),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+            const SizedBox(height: 16),
           ],
         ),
-        const SizedBox(height: 16),
-      ],
+      ),
     );
   }
 
@@ -850,25 +957,22 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
         }
 
         return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
-              return _buildHistoryCard(data, index);
-            },
-            childCount: snapshot.data!.docs.length,
-          ),
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final data =
+                snapshot.data!.docs[index].data() as Map<String, dynamic>;
+            return _buildHistoryCard(data, index);
+          }, childCount: snapshot.data!.docs.length),
         );
       },
     );
   }
 
-
   Widget _buildHistoryCard(Map<String, dynamic> data, int index) {
     final timestamp = data['timestamp'] as Timestamp?;
-    final dateStr = timestamp != null 
-        ? '${timestamp.toDate().day}/${timestamp.toDate().month}/${timestamp.toDate().year}' 
+    final dateStr = timestamp != null
+        ? '${timestamp.toDate().day}/${timestamp.toDate().month}/${timestamp.toDate().year}'
         : 'Recent';
-        
+
     return TweenAnimationBuilder(
       tween: Tween<double>(begin: 0, end: 1),
       duration: Duration(milliseconds: 400 + (index * 100)),
@@ -876,10 +980,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
       builder: (context, double value, child) {
         return Transform.translate(
           offset: Offset(0, 20 * (1 - value)),
-          child: Opacity(
-            opacity: value,
-            child: child,
-          ),
+          child: Opacity(opacity: value, child: child),
         );
       },
       child: Container(
@@ -900,31 +1001,43 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
             onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => InferenceResultPage(
-                imagePath: '', 
-                result: data['disease_name'] ?? 'Unknown',
-                confidence: (data['confidence'] ?? 0).toDouble(),
-                imageUrl: data['image_url'],
-              )));
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => InferenceResultPage(
+                    imagePath: '',
+                    result: data['disease_name'] ?? 'Unknown',
+                    confidence: (data['confidence'] ?? 0).toDouble(),
+                    imageUrl: data['image_url'],
+                  ),
+                ),
+              );
             },
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
                   Hero(
-                    tag: 'history_img_${timestamp?.microsecondsSinceEpoch ?? index}',
+                    tag:
+                        'history_img_${timestamp?.microsecondsSinceEpoch ?? index}',
                     child: Container(
                       width: 70,
                       height: 70,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(16),
-                        image: data['image_url'] != null 
-                            ? DecorationImage(image: NetworkImage(data['image_url']), fit: BoxFit.cover)
+                        image: data['image_url'] != null
+                            ? DecorationImage(
+                                image: NetworkImage(data['image_url']),
+                                fit: BoxFit.cover,
+                              )
                             : null,
                       ),
-                      child: data['image_url'] == null 
-                          ? const Icon(Icons.image_not_supported_outlined, color: Color(0xFF94A3B8)) 
+                      child: data['image_url'] == null
+                          ? const Icon(
+                              Icons.image_not_supported_outlined,
+                              color: Color(0xFF94A3B8),
+                            )
                           : null,
                     ),
                   ),
@@ -944,7 +1057,11 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            Icon(Icons.calendar_today_outlined, size: 14, color: const Color(0xFF64748B)),
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              size: 14,
+                              color: const Color(0xFF64748B),
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               dateStr,
@@ -959,7 +1076,10 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF3B9AE1).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -994,7 +1114,11 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
               color: const Color(0xFFF1F5F9),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.history_edu_outlined, size: 40, color: const Color(0xFF94A3B8)),
+            child: Icon(
+              Icons.history_edu_outlined,
+              size: 40,
+              color: const Color(0xFF94A3B8),
+            ),
           ),
           const SizedBox(height: 20),
           Text(
@@ -1009,7 +1133,10 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
           Text(
             "Your recent scans will appear here.",
             textAlign: TextAlign.center,
-            style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 14),
+            style: GoogleFonts.outfit(
+              color: const Color(0xFF64748B),
+              fontSize: 14,
+            ),
           ),
         ],
       ),

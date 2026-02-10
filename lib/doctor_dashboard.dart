@@ -10,6 +10,7 @@ import 'package:skin_disease1/doctor_slots_screen.dart';
 import 'package:skin_disease1/doctor_professional_details_screen.dart';
 import 'package:skin_disease1/doctor_change_password_screen.dart';
 import 'package:skin_disease1/doctor_support_center_screen.dart';
+import 'package:skin_disease1/utils/responsive_helper.dart';
 
 class DoctorDashboard extends StatefulWidget {
   @override
@@ -21,7 +22,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
   final user = FirebaseAuth.instance.currentUser;
 
   late List<Widget> _screens;
-  
+
   final List<String> _titles = [
     'Dashboard',
     'Appointments',
@@ -55,7 +56,10 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
         ),
         title: Text(
           _titles[_selectedIndex],
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -82,7 +86,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
             .snapshots(),
         builder: (context, snapshot) {
           final unreadCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-          
+
           return Badge(
             label: Text(unreadCount.toString()),
             isLabelVisible: unreadCount > 0,
@@ -90,10 +94,15 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
             child: FloatingActionButton(
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
               ),
               backgroundColor: const Color(0xFF3B9AE1),
-              child: const Icon(Icons.notifications_outlined, color: Colors.white),
+              child: const Icon(
+                Icons.notifications_outlined,
+                color: Colors.white,
+              ),
             ),
           );
         },
@@ -115,10 +124,29 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
           backgroundColor: Colors.white,
           indicatorColor: const Color(0xFF3B9AE1).withOpacity(0.1),
           destinations: const [
-            NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard, color: Color(0xFF3B9AE1)), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.calendar_today_outlined), selectedIcon: Icon(Icons.calendar_today, color: Color(0xFF3B9AE1)), label: 'Bookings'),
-            NavigationDestination(icon: Icon(Icons.chat_outlined), selectedIcon: Icon(Icons.chat, color: Color(0xFF3B9AE1)), label: 'Messages'),
-            NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings, color: Color(0xFF3B9AE1)), label: 'Settings'),
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard, color: Color(0xFF3B9AE1)),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.calendar_today_outlined),
+              selectedIcon: Icon(
+                Icons.calendar_today,
+                color: Color(0xFF3B9AE1),
+              ),
+              label: 'Bookings',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.chat_outlined),
+              selectedIcon: Icon(Icons.chat, color: Color(0xFF3B9AE1)),
+              label: 'Messages',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings, color: Color(0xFF3B9AE1)),
+              label: 'Settings',
+            ),
           ],
         ),
       ),
@@ -130,49 +158,91 @@ class _DoctorOverview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Practice Analytics',
-            style: GoogleFonts.outfit(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF1E293B),
+    return ListView(
+      padding: ResponsiveHelper.getScreenPadding(context).copyWith(bottom: 100),
+      children: [
+        Text(
+          'Practice Analytics',
+          style: GoogleFonts.outfit(
+            fontSize: ResponsiveHelper.getResponsiveFontSize(context, 24),
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF1E293B),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Monitor your daily performance and patient flow.',
+          style: GoogleFonts.outfit(
+            fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
+            color: const Color(0xFF64748B),
+          ),
+        ),
+        const SizedBox(height: 32),
+
+        GridView.count(
+          crossAxisCount: ResponsiveHelper.getGridCrossAxisCount(context),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 1.5,
+          children: [
+            _buildStatCard(
+              'Pending',
+              Icons.timer_outlined,
+              const Color(0xFFF59E0B),
+              'appointments',
+              'pending',
+              uid!,
             ),
+            _buildStatCard(
+              'Confirmed',
+              Icons.check_circle_outline,
+              const Color(0xFF3B82F6),
+              'appointments',
+              'confirmed',
+              uid,
+            ),
+            _buildStatCard(
+              'Completed',
+              Icons.done_all,
+              const Color(0xFF10B981),
+              'appointments',
+              'completed',
+              uid,
+            ),
+            _buildStatCard(
+              'Cancelled',
+              Icons.cancel_outlined,
+              const Color(0xFFEF4444),
+              'appointments',
+              'cancelled',
+              uid,
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 32),
+        Center(
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: ResponsiveHelper.getMaxWidth(context),
+            ),
+            child: _buildQuickActionCard(context),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Monitor your daily performance and patient flow.',
-            style: GoogleFonts.outfit(color: const Color(0xFF64748B)),
-          ),
-          const SizedBox(height: 32),
-          
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: 1.3,
-            children: [
-              _buildStatCard('Pending', Icons.timer_outlined, const Color(0xFFF59E0B), 'appointments', 'pending', uid!),
-              _buildStatCard('Confirmed', Icons.check_circle_outline, const Color(0xFF3B82F6), 'appointments', 'confirmed', uid),
-              _buildStatCard('Completed', Icons.done_all, const Color(0xFF10B981), 'appointments', 'completed', uid),
-              _buildStatCard('Cancelled', Icons.cancel_outlined, const Color(0xFFEF4444), 'appointments', 'cancelled', uid),
-            ],
-          ),
-          
-          const SizedBox(height: 32),
-          _buildQuickActionCard(context),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildStatCard(String label, IconData icon, Color color, String collection, String status, String uid) {
+  Widget _buildStatCard(
+    String label,
+    IconData icon,
+    Color color,
+    String collection,
+    String status,
+    String uid,
+  ) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection(collection)
@@ -262,7 +332,12 @@ class _DoctorOverview extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const DoctorSlotsScreen())),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DoctorSlotsScreen(),
+              ),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFF2C3E50),
@@ -282,17 +357,26 @@ class _DoctorAppointments extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('appointments')
+          .where('doctorId', isEqualTo: uid)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData)
+          return const Center(child: CircularProgressIndicator());
         if (snapshot.data!.docs.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.calendar_today_outlined, size: 64, color: Colors.grey[300]),
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 64,
+                  color: Colors.grey[300],
+                ),
                 const SizedBox(height: 16),
-                Text('No bookings found', style: GoogleFonts.outfit(color: Colors.grey)),
+                Text(
+                  'No bookings found',
+                  style: GoogleFonts.outfit(color: Colors.grey),
+                ),
               ],
             ),
           );
@@ -302,7 +386,8 @@ class _DoctorAppointments extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
-            final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+            final data =
+                snapshot.data!.docs[index].data() as Map<String, dynamic>;
             final docId = snapshot.data!.docs[index].id;
             return _buildAppointmentCard(context, docId, data);
           },
@@ -311,7 +396,11 @@ class _DoctorAppointments extends StatelessWidget {
     );
   }
 
-  Widget _buildAppointmentCard(BuildContext context, String docId, Map<String, dynamic> data) {
+  Widget _buildAppointmentCard(
+    BuildContext context,
+    String docId,
+    Map<String, dynamic> data,
+  ) {
     final status = data['status'] ?? 'pending';
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -324,7 +413,10 @@ class _DoctorAppointments extends StatelessWidget {
               children: [
                 CircleAvatar(
                   backgroundColor: const Color(0xFF3B9AE1).withOpacity(0.1),
-                  child: const Icon(Icons.person_outline, color: Color(0xFF3B9AE1)),
+                  child: const Icon(
+                    Icons.person_outline,
+                    color: Color(0xFF3B9AE1),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -333,11 +425,17 @@ class _DoctorAppointments extends StatelessWidget {
                     children: [
                       Text(
                         data['userName'] ?? 'Patient',
-                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       Text(
                         '${data['date']} at ${data['time']}',
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF64748B),
+                        ),
                       ),
                     ],
                   ),
@@ -354,7 +452,12 @@ class _DoctorAppointments extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => _update(docId, 'cancelled', data['userId'], data['doctorName']),
+                      onPressed: () => _update(
+                        docId,
+                        'cancelled',
+                        data['userId'],
+                        data['doctorName'],
+                      ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFEF4444),
                         side: const BorderSide(color: Color(0xFFEF4444)),
@@ -365,7 +468,12 @@ class _DoctorAppointments extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => _update(docId, 'confirmed', data['userId'], data['doctorName']),
+                      onPressed: () => _update(
+                        docId,
+                        'confirmed',
+                        data['userId'],
+                        data['doctorName'],
+                      ),
                       child: const Text('Confirm'),
                     ),
                   ),
@@ -380,8 +488,15 @@ class _DoctorAppointments extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => _showCompleteDialog(context, docId, data['userId'], data['doctorName']),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+                  onPressed: () => _showCompleteDialog(
+                    context,
+                    docId,
+                    data['userId'],
+                    data['doctorName'],
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                  ),
                   child: const Text('Complete Consultation'),
                 ),
               ),
@@ -392,13 +507,20 @@ class _DoctorAppointments extends StatelessWidget {
     );
   }
 
-  void _update(String id, String status, String userId, String? doctorName) async {
-    final docRef = FirebaseFirestore.instance.collection('appointments').doc(id);
+  void _update(
+    String id,
+    String status,
+    String userId,
+    String? doctorName,
+  ) async {
+    final docRef = FirebaseFirestore.instance
+        .collection('appointments')
+        .doc(id);
     final docSnap = await docRef.get();
     final data = docSnap.data() as Map<String, dynamic>?;
 
     await docRef.update({'status': status});
-    
+
     // If cancelled, free up the slot
     if (status == 'cancelled' && data != null && data['slotId'] != null) {
       await FirebaseFirestore.instance
@@ -412,43 +534,69 @@ class _DoctorAppointments extends StatelessWidget {
     await NotificationService.sendNotification(
       userId: userId,
       title: 'Appointment $status',
-      message: 'Your appointment with Dr. ${doctorName ?? 'Doctor'} has been $status.',
+      message:
+          'Your appointment with Dr. ${doctorName ?? 'Doctor'} has been $status.',
       type: 'appointment_update',
     );
   }
 
-  void _showCompleteDialog(BuildContext context, String id, String userId, String? doctorName) {
+  void _showCompleteDialog(
+    BuildContext context,
+    String id,
+    String userId,
+    String? doctorName,
+  ) {
     final t = TextEditingController();
     final tips = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Consultation Report', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Consultation Report',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: t, decoration: const InputDecoration(labelText: 'Diagnosis & Treatment')),
+            TextField(
+              controller: t,
+              decoration: const InputDecoration(
+                labelText: 'Diagnosis & Treatment',
+              ),
+            ),
             const SizedBox(height: 16),
-            TextField(controller: tips, decoration: const InputDecoration(labelText: 'Patient Guidance/Tips')),
+            TextField(
+              controller: tips,
+              decoration: const InputDecoration(
+                labelText: 'Patient Guidance/Tips',
+              ),
+            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
-              await FirebaseFirestore.instance.collection('appointments').doc(id).update({
-                'status': 'completed',
-                'treatment': t.text,
-                'doctorTips': tips.text,
-              });
-              
+              await FirebaseFirestore.instance
+                  .collection('appointments')
+                  .doc(id)
+                  .update({
+                    'status': 'completed',
+                    'treatment': t.text,
+                    'doctorTips': tips.text,
+                  });
+
               await NotificationService.sendNotification(
                 userId: userId,
                 title: 'Consultation Completed',
-                message: 'Dr. ${doctorName ?? 'Doctor'} has completed your consultation and added treatment notes.',
+                message:
+                    'Dr. ${doctorName ?? 'Doctor'} has completed your consultation and added treatment notes.',
                 type: 'appointment_completed',
               );
-              
+
               Navigator.pop(context);
             },
             child: const Text('Complete'),
@@ -463,13 +611,20 @@ class _DoctorAppointments extends StatelessWidget {
     if (status == 'confirmed') c = const Color(0xFF3B82F6);
     if (status == 'completed') c = const Color(0xFF10B981);
     if (status == 'cancelled') c = const Color(0xFFEF4444);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: c.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Text(
         status.toUpperCase(),
-        style: GoogleFonts.outfit(color: c, fontSize: 10, fontWeight: FontWeight.bold),
+        style: GoogleFonts.outfit(
+          color: c,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -486,50 +641,74 @@ class _DoctorSettingsState extends State<_DoctorSettings> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          const CircleAvatar(
-            radius: 50,
-            backgroundColor: Color(0xFF3B9AE1),
-            child: Icon(Icons.medical_services_outlined, size: 50, color: Colors.white),
+      padding: ResponsiveHelper.getScreenPadding(context),
+      child: Center(
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: ResponsiveHelper.getMaxWidth(context),
           ),
-          const SizedBox(height: 20),
-          Text(
-            FirebaseAuth.instance.currentUser?.displayName ?? 'Doctor Profile',
-            style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 32),
-          
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            children: [
+              const CircleAvatar(
+                radius: 50,
+                backgroundColor: Color(0xFF3B9AE1),
+                child: Icon(
+                  Icons.medical_services_outlined,
+                  size: 50,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                FirebaseAuth.instance.currentUser?.displayName ??
+                    'Doctor Profile',
+                style: GoogleFonts.outfit(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Booking Status', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-                      const Text('Receive new patient requests', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Booking Status',
+                            style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const Text(
+                            'Receive new patient requests',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Switch(
+                        value: _isAcceptingValue,
+                        onChanged: (v) => setState(() => _isAcceptingValue = v),
+                        activeColor: const Color(0xFF3B9AE1),
+                      ),
                     ],
                   ),
-                  Switch(
-                    value: _isAcceptingValue,
-                    onChanged: (v) => setState(() => _isAcceptingValue = v),
-                    activeColor: const Color(0xFF3B9AE1),
-                  ),
-                ],
+                ),
               ),
-            ),
+
+              const SizedBox(height: 24),
+              _buildOption(Icons.edit_note_outlined, 'Professional Details'),
+              _buildOption(Icons.access_time_outlined, 'Working Hours'),
+              _buildOption(Icons.lock_reset_outlined, 'Change Password'),
+              _buildOption(Icons.help_outline, 'Support Center'),
+            ],
           ),
-          
-          const SizedBox(height: 24),
-          _buildOption(Icons.edit_note_outlined, 'Professional Details'),
-          _buildOption(Icons.access_time_outlined, 'Working Hours'),
-          _buildOption(Icons.lock_reset_outlined, 'Change Password'),
-          _buildOption(Icons.help_outline, 'Support Center'),
-        ],
+        ),
       ),
     );
   }
@@ -539,17 +718,44 @@ class _DoctorSettingsState extends State<_DoctorSettings> {
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: Icon(icon, color: const Color(0xFF3B9AE1)),
-        title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
-        trailing: const Icon(Icons.chevron_right, size: 20, color: Color(0xFF94A3B8)),
+        title: Text(
+          title,
+          style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right,
+          size: 20,
+          color: Color(0xFF94A3B8),
+        ),
         onTap: () {
           if (title == 'Working Hours') {
-             Navigator.push(context, MaterialPageRoute(builder: (context) => const DoctorSlotsScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DoctorSlotsScreen(),
+              ),
+            );
           } else if (title == 'Professional Details') {
-             Navigator.push(context, MaterialPageRoute(builder: (context) => const DoctorProfessionalDetailsScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DoctorProfessionalDetailsScreen(),
+              ),
+            );
           } else if (title == 'Change Password') {
-             Navigator.push(context, MaterialPageRoute(builder: (context) => const DoctorChangePasswordScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DoctorChangePasswordScreen(),
+              ),
+            );
           } else if (title == 'Support Center') {
-             Navigator.push(context, MaterialPageRoute(builder: (context) => const DoctorSupportCenterScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DoctorSupportCenterScreen(),
+              ),
+            );
           }
         },
       ),
