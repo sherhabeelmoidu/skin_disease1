@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:skin_disease1/utils/responsive_helper.dart';
 
 class ChatbotWidget extends StatefulWidget {
   @override
   State<ChatbotWidget> createState() => _ChatbotWidgetState();
 }
 
-class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateMixin {
+class _ChatbotWidgetState extends State<ChatbotWidget>
+    with TickerProviderStateMixin {
   bool _isExpanded = false;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
@@ -14,7 +16,8 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
 
   final List<Map<String, dynamic>> _messages = [
     {
-      'text': 'Hello! I\'m your DermaSense AI assistant. How can I help you today?',
+      'text':
+          'Hello! I\'m your DermaSense AI assistant. How can I help you today?',
       'isUser': false,
       'timestamp': DateTime.now(),
     },
@@ -26,25 +29,17 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.elasticOut,
-    ));
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
+    );
 
-    _opacityAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    ));
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
   }
 
   @override
@@ -79,7 +74,7 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
     });
 
     // Simulate AI response after a delay
-    Future.delayed(Duration(seconds: 1), () {
+    Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
         setState(() {
           _messages.add({
@@ -113,6 +108,10 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final double chatWidth = ResponsiveHelper.isMobile(context)
+        ? MediaQuery.of(context).size.width * 0.9
+        : 400.0;
+
     return Stack(
       children: [
         // Chatbot Interface
@@ -125,7 +124,7 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
               child: FadeTransition(
                 opacity: _opacityAnimation,
                 child: Container(
-                  width: MediaQuery.of(context).size.width * 0.9,
+                  width: chatWidth,
                   height: MediaQuery.of(context).size.height * 0.6,
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -134,7 +133,7 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
                       BoxShadow(
                         color: Colors.black.withOpacity(0.2),
                         blurRadius: 20,
-                        offset: Offset(0, 10),
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
@@ -142,8 +141,8 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
                     children: [
                       // Header
                       Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
+                        padding: const EdgeInsets.all(16),
+                        decoration: const BoxDecoration(
                           gradient: LinearGradient(
                             colors: [Color(0xFF3B9AE1), Color(0xFF6C5CE7)],
                             begin: Alignment.topLeft,
@@ -171,7 +170,7 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
                                 ),
                               ),
                             ),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 'DermaSense AI Assistant',
@@ -183,7 +182,10 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
                               ),
                             ),
                             IconButton(
-                              icon: Icon(Icons.close, color: Colors.white),
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                              ),
                               onPressed: _toggleChatbot,
                             ),
                           ],
@@ -193,7 +195,7 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
                       // Messages
                       Expanded(
                         child: ListView.builder(
-                          padding: EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(16),
                           itemCount: _messages.length,
                           itemBuilder: (context, index) {
                             final message = _messages[index];
@@ -204,8 +206,8 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
 
                       // Input Field
                       Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
+                        padding: const EdgeInsets.all(16),
+                        decoration: const BoxDecoration(
                           color: Color(0xFFF8F9FA),
                           borderRadius: BorderRadius.only(
                             bottomLeft: Radius.circular(20),
@@ -216,34 +218,48 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
                           children: [
                             Expanded(
                               child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(25),
-                                  border: Border.all(color: Color(0xFFE0E0E0)),
+                                  border: Border.all(
+                                    color: const Color(0xFFE0E0E0),
+                                  ),
                                 ),
                                 child: TextField(
                                   controller: _messageController,
-                                  decoration: InputDecoration(
+                                  decoration: const InputDecoration(
                                     hintText: 'Type your message...',
                                     border: InputBorder.none,
-                                    hintStyle: TextStyle(color: Color(0xFFBDC3C7)),
+                                    hintStyle: TextStyle(
+                                      color: Color(0xFFBDC3C7),
+                                    ),
                                   ),
-                                  style: TextStyle(color: Color(0xFF2C3E50)),
+                                  style: const TextStyle(
+                                    color: Color(0xFF2C3E50),
+                                  ),
                                   onSubmitted: (_) => _sendMessage(),
                                 ),
                               ),
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Container(
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: [Color(0xFF3B9AE1), Color(0xFF6C5CE7)],
+                                  colors: [
+                                    Color(0xFF3B9AE1),
+                                    Color(0xFF6C5CE7),
+                                  ],
                                 ),
                                 shape: BoxShape.circle,
                               ),
                               child: IconButton(
-                                icon: Icon(Icons.send, color: Colors.white),
+                                icon: const Icon(
+                                  Icons.send,
+                                  color: Colors.white,
+                                ),
                                 onPressed: _sendMessage,
                               ),
                             ),
@@ -269,13 +285,15 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
                 gradient: LinearGradient(
                   colors: _isExpanded
                       ? [Colors.red, Colors.red.shade700]
-                      : [Color(0xFF3B9AE1), Color(0xFF6C5CE7)],
+                      : [const Color(0xFF3B9AE1), const Color(0xFF6C5CE7)],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: _isExpanded ? Colors.red.withOpacity(0.3) : Color(0xFF3B9AE1).withOpacity(0.3),
+                    color: _isExpanded
+                        ? Colors.red.withOpacity(0.3)
+                        : const Color(0xFF3B9AE1).withOpacity(0.3),
                     blurRadius: 15,
-                    offset: Offset(0, 8),
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
@@ -316,31 +334,31 @@ class _ChatbotWidgetState extends State<ChatbotWidget> with TickerProviderStateM
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: EdgeInsets.only(bottom: 8),
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.7,
         ),
         decoration: BoxDecoration(
-          color: isUser ? Color(0xFF3B9AE1) : Color(0xFFF8F9FA),
+          color: isUser ? const Color(0xFF3B9AE1) : const Color(0xFFF8F9FA),
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(isUser ? 16 : 4),
             topRight: Radius.circular(isUser ? 4 : 16),
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
+            bottomLeft: const Radius.circular(16),
+            bottomRight: const Radius.circular(16),
           ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
               blurRadius: 4,
-              offset: Offset(0, 2),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Text(
           text,
           style: GoogleFonts.poppins(
-            color: isUser ? Colors.white : Color(0xFF2C3E50),
+            color: isUser ? Colors.white : const Color(0xFF2C3E50),
             fontSize: 14,
           ),
         ),

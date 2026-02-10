@@ -13,14 +13,12 @@ import 'package:skin_disease1/profile_screen.dart';
 import 'package:skin_disease1/doctors_screen.dart';
 import 'package:skin_disease1/user_drawer.dart';
 import 'package:cloudinary_public/cloudinary_public.dart';
-import 'package:skin_disease1/chatbot_widget.dart';
 import 'package:skin_disease1/chat_list.dart';
 import 'package:skin_disease1/notifications_screen.dart';
 import 'package:skin_disease1/inference_result_page.dart';
 import 'package:skin_disease1/scan_history_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skin_disease1/doctors_map_screen.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:skin_disease1/booking_history_screen.dart';
 import 'package:skin_disease1/utils/responsive_helper.dart';
 

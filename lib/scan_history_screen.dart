@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:skin_disease1/inference_result_page.dart';  // Assuming this exists from previous context
+import 'package:skin_disease1/inference_result_page.dart';
+import 'package:skin_disease1/utils/responsive_helper.dart';
 
 class ScanHistoryScreen extends StatelessWidget {
   const ScanHistoryScreen({super.key});
@@ -12,11 +13,16 @@ class ScanHistoryScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(
-          'Scan History',
-          style: GoogleFonts.outfit(
-            color: const Color(0xFF1E293B),
-            fontWeight: FontWeight.bold,
+        title: Container(
+          constraints: BoxConstraints(
+            maxWidth: ResponsiveHelper.getMaxWidth(context),
+          ),
+          child: Text(
+            'Scan History',
+            style: GoogleFonts.outfit(
+              color: const Color(0xFF1E293B),
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         backgroundColor: Colors.white,
@@ -27,31 +33,39 @@ class ScanHistoryScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('user')
-            .doc(FirebaseAuth.instance.currentUser?.uid)
-            .collection('scan_history')
-            .orderBy('timestamp', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Center(
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: ResponsiveHelper.getMaxWidth(context),
+          ),
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('user')
+                .doc(FirebaseAuth.instance.currentUser?.uid)
+                .collection('scan_history')
+                .orderBy('timestamp', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return _buildEmptyState();
-          }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return _buildEmptyState();
+              }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
-              return _buildHistoryCard(context, data);
+              return ListView.builder(
+                padding: ResponsiveHelper.getScreenPadding(context),
+                itemCount: snapshot.data!.docs.length,
+                itemBuilder: (context, index) {
+                  final data =
+                      snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                  return _buildHistoryCard(context, data);
+                },
+              );
             },
-          );
-        },
+          ),
+        ),
       ),
     );
   }
@@ -83,7 +97,7 @@ class ScanHistoryScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-                onTap: () {
+          onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -117,7 +131,11 @@ class ScanHistoryScreen extends StatelessWidget {
                           : null,
                     ),
                     child: data['image_url'] == null
-                        ? const Icon(Icons.image, color: Color(0xFF94A3B8), size: 30)
+                        ? const Icon(
+                            Icons.image,
+                            color: Color(0xFF94A3B8),
+                            size: 30,
+                          )
                         : null,
                   ),
                 ),
@@ -137,8 +155,11 @@ class ScanHistoryScreen extends StatelessWidget {
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          Icon(Icons.calendar_today_rounded,
-                              size: 14, color: const Color(0xFF64748B)),
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            size: 14,
+                            color: const Color(0xFF64748B),
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             '$dateStr • $timeStr',
@@ -154,7 +175,9 @@ class ScanHistoryScreen extends StatelessWidget {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: (data['confidence'] ?? 0) > 70
                                   ? const Color(0xFFECFDF5)
@@ -176,7 +199,9 @@ class ScanHistoryScreen extends StatelessWidget {
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: (data['percentage_change'] ?? 0) < 0
                                     ? const Color(0xFFECFDF5)
@@ -200,8 +225,11 @@ class ScanHistoryScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded,
-                    size: 16, color: Color(0xFF94A3B8)),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: Color(0xFF94A3B8),
+                ),
               ],
             ),
           ),
@@ -228,8 +256,11 @@ class ScanHistoryScreen extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Icon(Icons.history_rounded,
-                size: 60, color: Color(0xFFCBD5E1)),
+            child: const Icon(
+              Icons.history_rounded,
+              size: 60,
+              color: Color(0xFFCBD5E1),
+            ),
           ),
           const SizedBox(height: 24),
           Text(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:skin_disease1/utils/responsive_helper.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({Key? key}) : super(key: key);
@@ -15,65 +16,92 @@ class NotificationsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          'Notifications',
-          style: TextStyle(color: Color(0xFF2C3E50), fontWeight: FontWeight.bold),
+        centerTitle: true,
+        title: Container(
+          constraints: BoxConstraints(
+            maxWidth: ResponsiveHelper.getMaxWidth(context),
+          ),
+          child: const Text(
+            'Notifications',
+            style: TextStyle(
+              color: Color(0xFF2C3E50),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF2C3E50)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: user == null
-          ? const Center(child: Text('Please log in to see notifications'))
-          : StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('user')
-                  .doc(user.uid)
-                  .collection('notifications')
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
+      body: Center(
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: ResponsiveHelper.getMaxWidth(context),
+          ),
+          child: user == null
+              ? const Center(child: Text('Please log in to see notifications'))
+              : StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('user')
+                      .doc(user.uid)
+                      .collection('notifications')
+                      .orderBy('timestamp', descending: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    }
 
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.notifications_none, size: 64, color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'No notifications yet',
-                          style: TextStyle(fontSize: 18, color: Color(0xFF7F8C8D)),
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.notifications_none,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'No notifications yet',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Color(0xFF7F8C8D),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  );
-                }
+                      );
+                    }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: snapshot.data!.docs.length,
-                  itemBuilder: (context, index) {
-                    final doc = snapshot.data!.docs[index];
-                    final data = doc.data() as Map<String, dynamic>;
-                    
-                    return _buildNotificationCard(context, doc.id, data);
+                    return ListView.builder(
+                      padding: ResponsiveHelper.getScreenPadding(context),
+                      itemCount: snapshot.data!.docs.length,
+                      itemBuilder: (context, index) {
+                        final doc = snapshot.data!.docs[index];
+                        final data = doc.data() as Map<String, dynamic>;
+
+                        return _buildNotificationCard(context, doc.id, data);
+                      },
+                    );
                   },
-                );
-              },
-            ),
+                ),
+        ),
+      ),
     );
   }
 
-  Widget _buildNotificationCard(BuildContext context, String docId, Map<String, dynamic> data) {
+  Widget _buildNotificationCard(
+    BuildContext context,
+    String docId,
+    Map<String, dynamic> data,
+  ) {
     final bool isRead = data['read'] ?? false;
     final DateTime? timestamp = (data['timestamp'] as Timestamp?)?.toDate();
 
@@ -113,7 +141,9 @@ class NotificationsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              timestamp != null ? DateFormat('MMM d, h:mm a').format(timestamp) : '',
+              timestamp != null
+                  ? DateFormat('MMM d, h:mm a').format(timestamp)
+                  : '',
               style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
           ],

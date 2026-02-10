@@ -7,6 +7,7 @@ import 'package:skin_disease1/notifications_screen.dart';
 import 'package:skin_disease1/main.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skin_disease1/scan_history_screen.dart';
+import 'package:skin_disease1/utils/responsive_helper.dart';
 
 class UserDrawer extends StatefulWidget {
   const UserDrawer({super.key});
@@ -23,11 +24,19 @@ class _UserDrawerState extends State<UserDrawer> {
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: Colors.white,
+      width: ResponsiveHelper.isMobile(context)
+          ? MediaQuery.of(context).size.width * 0.85
+          : 350.0,
       child: Column(
         children: [
           // Header with user profile
           Container(
-            padding: const EdgeInsets.only(top: 60, bottom: 30, left: 24, right: 24),
+            padding: const EdgeInsets.only(
+              top: 60,
+              bottom: 30,
+              left: 24,
+              right: 24,
+            ),
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -46,7 +55,8 @@ class _UserDrawerState extends State<UserDrawer> {
                   .snapshots(),
               builder: (context, snapshot) {
                 String userName = 'User';
-                String userEmail = _auth.currentUser?.email ?? 'user@example.com';
+                String userEmail =
+                    _auth.currentUser?.email ?? 'user@example.com';
                 String? profileImageUrl;
 
                 if (snapshot.hasData && snapshot.data != null) {
@@ -62,13 +72,16 @@ class _UserDrawerState extends State<UserDrawer> {
                       height: 90,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 3),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 3,
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.1),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
-                          )
+                          ),
                         ],
                         image: profileImageUrl != null
                             ? DecorationImage(
@@ -154,7 +167,9 @@ class _UserDrawerState extends State<UserDrawer> {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationsScreen(),
+                      ),
                     );
                   },
                 ),
@@ -192,7 +207,10 @@ class _UserDrawerState extends State<UserDrawer> {
               ),
               child: ListTile(
                 onTap: () => _showLogoutDialog(context),
-                leading: const Icon(Icons.logout_rounded, color: Color(0xFFEF4444)),
+                leading: const Icon(
+                  Icons.logout_rounded,
+                  color: Color(0xFFEF4444),
+                ),
                 title: Text(
                   'Logout',
                   style: GoogleFonts.outfit(
@@ -200,7 +218,9 @@ class _UserDrawerState extends State<UserDrawer> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
           ),
@@ -255,7 +275,10 @@ class _UserDrawerState extends State<UserDrawer> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.outfit(color: const Color(0xFF64748B))),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.outfit(color: const Color(0xFF64748B)),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -270,7 +293,9 @@ class _UserDrawerState extends State<UserDrawer> {
               backgroundColor: const Color(0xFFEF4444),
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: const Text('Logout'),
           ),
