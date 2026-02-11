@@ -4,18 +4,22 @@ import 'package:skin_disease1/doctors_screen.dart';
 import 'package:skin_disease1/doctors_map_screen.dart';
 
 class InferenceResultPage extends StatelessWidget {
-  final String imagePath;
-  final String result;
-  final double confidence;
+  final String? imagePath;
+  final String? result;
+  final double? confidence;
   final int? percentageChange;
   final String? imageUrl;
+  final bool isError;
+  final String? errorMessage;
 
   const InferenceResultPage({
-    required this.imagePath,
-    required this.result,
-    required this.confidence,
+    this.imagePath,
+    this.result,
+    this.confidence,
     this.percentageChange,
     this.imageUrl,
+    this.isError = false,
+    this.errorMessage,
   });
 
   @override
@@ -36,7 +40,14 @@ class InferenceResultPage extends StatelessWidget {
                 tag: 'scan_image',
                 child: imageUrl != null
                     ? Image.network(imageUrl!, fit: BoxFit.cover)
-                    : const Icon(Icons.image, size: 100, color: Colors.white24),
+                    : Container(
+                        color: const Color(0xFF1E293B),
+                        child: const Icon(
+                          Icons.image,
+                          size: 100,
+                          color: Colors.white24,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -53,59 +64,79 @@ class InferenceResultPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Analysis Result',
-                              style: GoogleFonts.outfit(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF3B9AE1),
-                                letterSpacing: 1.2,
+                  if (isError) ...[
+                    _buildErrorState(),
+                  ] else ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Analysis Result',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF3B9AE1),
+                                  letterSpacing: 1.2,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              result.toUpperCase(),
-                              style: GoogleFonts.outfit(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF1E293B),
+                              const SizedBox(height: 8),
+                              Text(
+                                (result ?? 'Unmatched').toUpperCase(),
+                                style: GoogleFonts.outfit(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1E293B),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      _buildChangeIndicator(),
-                      const SizedBox(width: 12),
-                      _buildConfidenceIndicator(),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  _buildSectionHeader('Understanding the Condition'),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Based on our AI model, this image shows characteristics consistent with $result. This is a preliminary analysis and should not be considered a final diagnosis.',
-                    style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      color: const Color(0xFF64748B),
-                      height: 1.6,
+                        const SizedBox(width: 12),
+                        _buildChangeIndicator(),
+                        const SizedBox(width: 12),
+                        _buildConfidenceIndicator(),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  _buildWarningCard(),
-                  const SizedBox(height: 40),
-                  _buildSectionHeader('Next Steps'),
-                  const SizedBox(height: 16),
-                  _buildStepItem(Icons.medical_services_outlined, 'Consult a Specialist', 'Speak with a verified dermatologist for a professional evaluation.'),
-                  _buildStepItem(Icons.history_edu_outlined, 'Monitor Progress', 'Keep track of any changes in the affected area over the next few days.'),
-                  _buildStepItem(Icons.info_outline, 'Learn More', 'Read about hygiene practices related to $result.'),
+                    const SizedBox(height: 32),
+                    _buildSectionHeader('Understanding the Condition'),
+                    const SizedBox(height: 12),
+                    Text(
+                      result != null &&
+                              result!.toLowerCase() != 'unknown' &&
+                              result!.toLowerCase() != 'unmatched'
+                          ? 'Based on our AI model, this image shows characteristics consistent with $result. This is a preliminary analysis and should not be considered a final diagnosis.'
+                          : 'Our AI model could not confidently identify a specific skin condition from this image. This may be due to lighting, image quality, or a condition not in our current database.',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        color: const Color(0xFF64748B),
+                        height: 1.6,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    _buildWarningCard(),
+                    const SizedBox(height: 40),
+                    _buildSectionHeader('Next Steps'),
+                    const SizedBox(height: 16),
+                    _buildStepItem(
+                      Icons.medical_services_outlined,
+                      'Consult a Specialist',
+                      'Speak with a verified dermatologist for a professional evaluation.',
+                    ),
+                    _buildStepItem(
+                      Icons.history_edu_outlined,
+                      'Monitor Progress',
+                      'Keep track of any changes in the affected area over the next few days.',
+                    ),
+                    _buildStepItem(
+                      Icons.info_outline,
+                      'Learn More',
+                      'Read about hygiene practices related to ${result ?? 'skin care'}.',
+                    ),
+                  ],
                   const SizedBox(height: 48),
                   SizedBox(
                     width: double.infinity,
@@ -113,7 +144,9 @@ class InferenceResultPage extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => DoctorsScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => DoctorsScreen(),
+                          ),
                         );
                       },
                       child: const Text('Find Specialist Near You'),
@@ -126,7 +159,9 @@ class InferenceResultPage extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const DoctorsMapScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const DoctorsMapScreen(),
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -160,12 +195,92 @@ class InferenceResultPage extends StatelessWidget {
     );
   }
 
+  Widget _buildErrorState() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline,
+                color: Color(0xFFEF4444),
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Analysis Failed',
+                    style: GoogleFonts.outfit(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1E293B),
+                    ),
+                  ),
+                  Text(
+                    'We encountered an issue',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Error Details',
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF475569),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                errorMessage ??
+                    'An unexpected error occurred while communicating with the analysis server. Please check your internet connection and try again.',
+                style: GoogleFonts.outfit(
+                  color: const Color(0xFF64748B),
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildChangeIndicator() {
     if (percentageChange == null) return const SizedBox.shrink();
-    
+
     final isImprovement = percentageChange! < 0;
     final absChange = percentageChange!.abs();
-    final color = isImprovement ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    final color = isImprovement
+        ? const Color(0xFF10B981)
+        : const Color(0xFFEF4444);
     final icon = isImprovement ? Icons.trending_down : Icons.trending_up;
 
     return Container(
@@ -206,7 +321,9 @@ class InferenceResultPage extends StatelessWidget {
   }
 
   Widget _buildConfidenceIndicator() {
-    final color = confidence > 0.7 ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
+    final color = (confidence ?? 0) > 0.7
+        ? const Color(0xFF10B981)
+        : const Color(0xFFF59E0B);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -217,7 +334,7 @@ class InferenceResultPage extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            '${(confidence * 100).toStringAsFixed(1)}%',
+            '${((confidence ?? 0) * 100).toStringAsFixed(1)}%',
             style: GoogleFonts.outfit(
               fontSize: 20,
               fontWeight: FontWeight.bold,

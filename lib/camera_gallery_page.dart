@@ -350,11 +350,16 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
     } catch (e) {
       if (mounted) Navigator.pop(context); // Close loading overlay
       setState(() => _isAnalyzing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Critical error: $e'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
+
+      // Navigate to result page with error
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => InferenceResultPage(
+            isError: true,
+            errorMessage: e.toString(),
+            imageUrl: _lastUploadedImageUrl,
+          ),
         ),
       );
     }
@@ -430,7 +435,11 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
     );
   }
 
-  void _showResultPage(String label, double confidence, int percentageChange) {
+  void _showResultPage(
+    String? label,
+    double? confidence,
+    int? percentageChange,
+  ) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -439,7 +448,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
           result: label,
           confidence: confidence,
           percentageChange: percentageChange,
-          imageUrl: _lastUploadedImageUrl, // We should ensure this is set
+          imageUrl: _lastUploadedImageUrl,
         ),
       ),
     );
