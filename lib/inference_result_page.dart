@@ -11,6 +11,7 @@ class InferenceResultPage extends StatelessWidget {
   final String? imageUrl;
   final bool isError;
   final String? errorMessage;
+  final Map<String, dynamic>? backendDetails;
 
   const InferenceResultPage({
     this.imagePath,
@@ -20,6 +21,7 @@ class InferenceResultPage extends StatelessWidget {
     this.imageUrl,
     this.isError = false,
     this.errorMessage,
+    this.backendDetails,
   });
 
   @override
@@ -101,41 +103,7 @@ class InferenceResultPage extends StatelessWidget {
                         _buildConfidenceIndicator(),
                       ],
                     ),
-                    const SizedBox(height: 32),
-                    _buildSectionHeader('Understanding the Condition'),
-                    const SizedBox(height: 12),
-                    Text(
-                      result != null &&
-                              result!.toLowerCase() != 'unknown' &&
-                              result!.toLowerCase() != 'unmatched'
-                          ? 'Based on our AI model, this image shows characteristics consistent with $result. This is a preliminary analysis and should not be considered a final diagnosis.'
-                          : 'Our AI model could not confidently identify a specific skin condition from this image. This may be due to lighting, image quality, or a condition not in our current database.',
-                      style: GoogleFonts.outfit(
-                        fontSize: 16,
-                        color: const Color(0xFF64748B),
-                        height: 1.6,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    _buildWarningCard(),
-                    const SizedBox(height: 40),
-                    _buildSectionHeader('Next Steps'),
-                    const SizedBox(height: 16),
-                    _buildStepItem(
-                      Icons.medical_services_outlined,
-                      'Consult a Specialist',
-                      'Speak with a verified dermatologist for a professional evaluation.',
-                    ),
-                    _buildStepItem(
-                      Icons.history_edu_outlined,
-                      'Monitor Progress',
-                      'Keep track of any changes in the affected area over the next few days.',
-                    ),
-                    _buildStepItem(
-                      Icons.info_outline,
-                      'Learn More',
-                      'Read about hygiene practices related to ${result ?? 'skin care'}.',
-                    ),
+                    _buildConditionDetails(),
                   ],
                   const SizedBox(height: 48),
                   SizedBox(
@@ -351,6 +319,93 @@ class InferenceResultPage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  IconData _getIconData(String? iconName) {
+    switch (iconName) {
+      case 'opacity':
+        return Icons.opacity;
+      case 'wash':
+        return Icons.wash;
+      case 'emergency_outlined':
+        return Icons.emergency_outlined;
+      case 'search':
+        return Icons.search;
+      case 'cleaning_services':
+        return Icons.cleaning_services;
+      case 'do_not_disturb_on':
+        return Icons.do_not_disturb_on;
+      case 'visibility':
+        return Icons.visibility;
+      case 'info_outline':
+        return Icons.info_outline;
+      case 'touch_app':
+        return Icons.touch_app;
+      case 'monitor_heart':
+        return Icons.monitor_heart;
+      case 'abc':
+        return Icons.abc;
+      case 'wb_sunny':
+        return Icons.wb_sunny;
+      case 'medical_information':
+        return Icons.medical_information;
+      case 'shield':
+        return Icons.shield;
+      case 'medical_services':
+        return Icons.medical_services;
+      case 'lightbulb':
+        return Icons.lightbulb;
+      default:
+        return Icons.info_outline;
+    }
+  }
+
+  Widget _buildConditionDetails() {
+    final currentResult = result ?? 'Unknown';
+    final description =
+        backendDetails?['description'] ??
+        'Our AI model has detected signals consistent with $currentResult. This is a preliminary assessment based on visual characteristics.';
+    final steps = backendDetails?['steps'] as List?;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 32),
+        _buildSectionHeader('Understanding the Condition'),
+        const SizedBox(height: 12),
+        Text(
+          description,
+          style: GoogleFonts.outfit(
+            fontSize: 16,
+            color: const Color(0xFF64748B),
+            height: 1.6,
+          ),
+        ),
+        const SizedBox(height: 32),
+        _buildWarningCard(),
+        const SizedBox(height: 40),
+        _buildSectionHeader('Recommended Next Steps'),
+        const SizedBox(height: 16),
+        if (steps != null)
+          ...steps.map((step) {
+            return _buildStepItem(
+              _getIconData(step['icon']),
+              step['title'] ?? 'Recommendation',
+              step['description'] ?? '',
+            );
+          }),
+        _buildStepItem(
+          Icons.medical_services_outlined,
+          'Clinical Consultation',
+          'Speak with a verified specialist for a professional medical evaluation.',
+        ),
+        _buildStepItem(
+          Icons.history_edu_outlined,
+          'Continuous Monitoring',
+          'Track the area for any changes over the coming weeks.',
+        ),
+      ],
     );
   }
 

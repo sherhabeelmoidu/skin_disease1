@@ -13,10 +13,19 @@ const String _apiUrl = "http://$_laptopIp:8000/predict";
 Future<Map<String, dynamic>> analyzeImage({
   File? file,
   Uint8List? bytes,
+  String? userId,
+  String? imageUrl,
 }) async {
   try {
     debugPrint('Starting analysis at $_apiUrl');
     var request = http.MultipartRequest('POST', Uri.parse(_apiUrl));
+
+    if (userId != null) {
+      request.fields['uid'] = userId;
+    }
+    if (imageUrl != null) {
+      request.fields['image_url'] = imageUrl;
+    }
 
     if (file != null) {
       request.files.add(
@@ -53,9 +62,10 @@ Future<Map<String, dynamic>> analyzeImage({
       return {
         'label': result['prediction'] ?? 'Unknown',
         'confidence': ((result['confidence'] ?? 0.0) as num).toDouble() / 100,
+        'details': result['details'], // Capture backend-provided details
         'percentage_change': result['percentage_change'] != null
             ? (result['percentage_change'] as num).toInt()
-            : null, // Safely cast if present
+            : null,
       };
     } else if (response.statusCode == 400) {
       String errorMessage = "Bad Request";

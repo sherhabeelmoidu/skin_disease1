@@ -115,7 +115,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
       final old = _controller;
       _controller = CameraController(
         cam,
-        ResolutionPreset.medium,
+        ResolutionPreset.high,
         enableAudio: false,
       );
       await _controller!.initialize();
@@ -313,6 +313,8 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
       final res = await analyzeImage(
         file: _pickedFile != null ? File(_pickedFile!.path) : null,
         bytes: _webImageBytes,
+        userId: FirebaseAuth.instance.currentUser?.uid,
+        imageUrl: imageUrl,
       );
 
       if (!mounted) return;
@@ -346,6 +348,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
         res['label'],
         res['confidence'],
         res['percentage_change'],
+        res['details'],
       );
     } catch (e) {
       if (mounted) Navigator.pop(context); // Close loading overlay
@@ -439,6 +442,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
     String? label,
     double? confidence,
     int? percentageChange,
+    Map<String, dynamic>? details,
   ) {
     Navigator.push(
       context,
@@ -449,6 +453,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
           confidence: confidence,
           percentageChange: percentageChange,
           imageUrl: _lastUploadedImageUrl,
+          backendDetails: details,
         ),
       ),
     );
@@ -1014,7 +1019,7 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                   builder: (context) => InferenceResultPage(
                     imagePath: '',
                     result: data['disease_name'] ?? 'Unknown',
-                    confidence: (data['confidence'] ?? 0).toDouble(),
+                    confidence: (data['confidence'] ?? 0).toDouble() / 100,
                     imageUrl: data['image_url'],
                   ),
                 ),
