@@ -328,32 +328,32 @@ class InferenceResultPage extends StatelessWidget {
         return Icons.opacity;
       case 'wash':
         return Icons.wash;
-      case 'emergency_outlined':
-        return Icons.emergency_outlined;
-      case 'search':
-        return Icons.search;
-      case 'cleaning_services':
-        return Icons.cleaning_services;
-      case 'do_not_disturb_on':
-        return Icons.do_not_disturb_on;
-      case 'visibility':
-        return Icons.visibility;
-      case 'info_outline':
-        return Icons.info_outline;
+      case 'science':
+        return Icons.science;
+      case 'restaurant':
+        return Icons.restaurant;
       case 'touch_app':
         return Icons.touch_app;
-      case 'monitor_heart':
-        return Icons.monitor_heart;
-      case 'abc':
-        return Icons.abc;
-      case 'wb_sunny':
-        return Icons.wb_sunny;
-      case 'medical_information':
-        return Icons.medical_information;
-      case 'shield':
-        return Icons.shield;
       case 'medical_services':
         return Icons.medical_services;
+      case 'medical_information':
+        return Icons.medical_information;
+      case 'content_cut':
+        return Icons.content_cut;
+      case 'search':
+        return Icons.search;
+      case 'ac_unit':
+        return Icons.ac_unit;
+      case 'medication':
+        return Icons.medication;
+      case 'water_drop':
+        return Icons.water_drop;
+      case 'wb_sunny':
+        return Icons.wb_sunny;
+      case 'shield':
+        return Icons.shield;
+      case 'do_not_disturb_on':
+        return Icons.do_not_disturb_on;
       case 'lightbulb':
         return Icons.lightbulb;
       default:
@@ -363,10 +363,78 @@ class InferenceResultPage extends StatelessWidget {
 
   Widget _buildConditionDetails() {
     final currentResult = result ?? 'Unknown';
+
+    if (currentResult == "Invalid Image (Not Skin)") {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 32),
+          _buildSectionHeader('Image Not Recognized'),
+          const SizedBox(height: 12),
+          Text(
+            'Our system could not detect skin in the provided image. Please ensure the photo is clear, well-lit, and focuses on the area of concern.',
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              color: const Color(0xFF64748B),
+              height: 1.6,
+            ),
+          ),
+          const SizedBox(height: 32),
+          _buildStepItem(
+            Icons.lightbulb_outline,
+            'Good Lighting',
+            'Take the photo in natural daylight or a well-lit room.',
+          ),
+          _buildStepItem(
+            Icons.center_focus_strong_outlined,
+            'Stay Focused',
+            'Ensure the skin condition is in the center and in focus.',
+          ),
+        ],
+      );
+    }
+
+    if (currentResult == "Uncertain Prediction") {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 32),
+          _buildSectionHeader('Low Confidence Analysis'),
+          const SizedBox(height: 12),
+          Text(
+            'The AI model is uncertain about this specific image. This can happen if the image is blurry, has poor lighting, or if the condition is not well-represented in our database.',
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              color: const Color(0xFF64748B),
+              height: 1.6,
+            ),
+          ),
+          const SizedBox(height: 32),
+          _buildWarningCard(),
+          const SizedBox(height: 40),
+          _buildSectionHeader('Next Steps'),
+          const SizedBox(height: 16),
+          _buildStepItem(
+            Icons.camera_alt_outlined,
+            'Retake Photo',
+            'Try taking another photo with better lighting and focus.',
+          ),
+          _buildStepItem(
+            Icons.medical_services_outlined,
+            'Consult a Professional',
+            'Since the automated analysis is uncertain, we highly recommend speaking with a dermatologist.',
+          ),
+        ],
+      );
+    }
+
+    // Use backend details if provided, otherwise fallback to local map
+    final details = backendDetails ?? _localDiseaseDetails[currentResult];
+
     final description =
-        backendDetails?['description'] ??
+        details?['description'] ??
         'Our AI model has detected signals consistent with $currentResult. This is a preliminary assessment based on visual characteristics.';
-    final steps = backendDetails?['steps'] as List?;
+    final steps = details?['steps'] as List?;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -509,4 +577,107 @@ class InferenceResultPage extends StatelessWidget {
       ),
     );
   }
+
+  static const Map<String, Map<String, dynamic>> _localDiseaseDetails = {
+    'Acne': {
+      'description': 'Acne is caused by clogged pores and oil buildup.',
+      'steps': [
+        {
+          'title': 'Gentle Cleansing',
+          'description': 'Wash face twice daily.',
+          'icon': 'wash',
+        },
+        {
+          'title': 'Topical Treatment',
+          'description': 'Use salicylic acid products.',
+          'icon': 'science',
+        },
+        {
+          'title': 'Avoid Touching',
+          'description': 'Do not pick pimples.',
+          'icon': 'do_not_disturb_on',
+        },
+      ],
+    },
+    'Hairloss': {
+      'description': 'Hair loss due to genetics or nutrition.',
+      'steps': [
+        {
+          'title': 'Nutrition',
+          'description': 'Increase iron and biotin.',
+          'icon': 'restaurant',
+        },
+        {
+          'title': 'Massage',
+          'description': 'Improve blood circulation.',
+          'icon': 'touch_app',
+        },
+        {
+          'title': 'Consult Doctor',
+          'description': 'Visit dermatologist.',
+          'icon': 'medical_services',
+        },
+      ],
+    },
+    'Nail Fungus': {
+      'description': 'Fungal infection affecting nails.',
+      'steps': [
+        {
+          'title': 'Keep Dry',
+          'description': 'Avoid moisture.',
+          'icon': 'opacity',
+        },
+        {
+          'title': 'Antifungal Cream',
+          'description': 'Apply medication.',
+          'icon': 'medical_information',
+        },
+        {
+          'title': 'Trim Nails',
+          'description': 'Keep nails short.',
+          'icon': 'content_cut',
+        },
+      ],
+    },
+    'Skin Allergy': {
+      'description': 'Skin reaction to allergens.',
+      'steps': [
+        {
+          'title': 'Identify Trigger',
+          'description': 'Find allergen.',
+          'icon': 'search',
+        },
+        {
+          'title': 'Cool Compress',
+          'description': 'Reduce irritation.',
+          'icon': 'ac_unit',
+        },
+        {
+          'title': 'Medication',
+          'description': 'Use antihistamines.',
+          'icon': 'medication',
+        },
+      ],
+    },
+    'Normal': {
+      'description': 'Skin appears healthy.',
+      'steps': [
+        {
+          'title': 'Hydrate',
+          'description': 'Drink water.',
+          'icon': 'water_drop',
+        },
+        {
+          'title': 'Sun Protection',
+          'description': 'Use sunscreen.',
+          'icon': 'wb_sunny',
+        },
+        {
+          'title': 'Maintain Routine',
+          'description': 'Continue skincare.',
+          'icon': 'shield',
+        },
+      ],
+    },
+  };
 }

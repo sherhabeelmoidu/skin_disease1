@@ -326,21 +326,24 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
       });
 
       // 3. Save to History (Optional non-blocking)
-      try {
-        await FirebaseFirestore.instance
-            .collection('user')
-            .doc(FirebaseAuth.instance.currentUser?.uid)
-            .collection('scan_history')
-            .add({
-              'disease_name': res['label'],
-              'confidence': (res['confidence'] * 100).toInt(),
-              'percentage_change': res['percentage_change'],
-              'image_url': imageUrl,
-              'timestamp': FieldValue.serverTimestamp(),
-            })
-            .timeout(const Duration(seconds: 5));
-      } catch (e) {
-        debugPrint('Failed to save to history: $e');
+      if (res['label'] != "Invalid Image (Not Skin)" &&
+          res['label'] != "Uncertain Prediction") {
+        try {
+          await FirebaseFirestore.instance
+              .collection('user')
+              .doc(FirebaseAuth.instance.currentUser?.uid)
+              .collection('scan_history')
+              .add({
+                'disease_name': res['label'],
+                'confidence': (res['confidence'] * 100).toInt(),
+                'percentage_change': res['percentage_change'],
+                'image_url': imageUrl,
+                'timestamp': FieldValue.serverTimestamp(),
+              })
+              .timeout(const Duration(seconds: 5));
+        } catch (e) {
+          debugPrint('Failed to save to history: $e');
+        }
       }
 
       // 4. Show Result Page

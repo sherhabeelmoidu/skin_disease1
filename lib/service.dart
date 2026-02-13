@@ -16,13 +16,13 @@ Future<void> reg({
   String? idProofUrl,
   required BuildContext context,
 }) async {
-  final trimmedEmail = email.trim();
+  final trimmedEmail = email.trim().toLowerCase();
   final trimmedPassword = password1.trim();
   try {
     UserCredential userCredential = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(
           email: trimmedEmail,
-          password: password1, // Removed trim for passwords
+          password: trimmedPassword,
         );
     User? user = userCredential.user;
 
@@ -31,7 +31,7 @@ Future<void> reg({
       await user.updateDisplayName(name);
 
       Map<String, dynamic> userData = {
-        "email": email,
+        "email": trimmedEmail,
         "name": name,
         "role": role,
         "created_at": FieldValue.serverTimestamp(),
@@ -88,12 +88,12 @@ Future<void> login({
   required String password1,
   required BuildContext context,
 }) async {
-  final trimmedEmail = email.trim();
+  final trimmedEmail = email.trim().toLowerCase();
   final trimmedPassword = password1.trim();
   const String adminEmail = "admin@dermasense.com";
   const String adminPassword = "admin123";
 
-  if (trimmedEmail == adminEmail && password1.trim() == adminPassword) {
+  if (trimmedEmail == adminEmail && trimmedPassword == adminPassword) {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isAdminLoggedIn', true);
 
@@ -111,7 +111,7 @@ Future<void> login({
     UserCredential userCredential = await FirebaseAuth.instance
         .signInWithEmailAndPassword(
           email: trimmedEmail,
-          password: password1, // Removed trim for passwords
+          password: trimmedPassword,
         );
 
     User? user = userCredential.user;
@@ -190,7 +190,7 @@ Future<void> forgotpassword({
   required String email,
   required BuildContext context,
 }) async {
-  final trimmedEmail = email.trim();
+  final trimmedEmail = email.trim().toLowerCase();
   try {
     await FirebaseAuth.instance.sendPasswordResetEmail(email: trimmedEmail);
     ScaffoldMessenger.of(context).showSnackBar(
