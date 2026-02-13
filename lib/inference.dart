@@ -7,8 +7,8 @@ import 'package:http_parser/http_parser.dart';
 
 // Replace this with your laptop's IP address (e.g., "192.168.1.10")
 // You can find your IP by running 'ipconfig' (Windows) or 'ifconfig' (Mac/Linux)
-const String _laptopIp = "192.168.1.136"; // User's laptop IP address
-const String _apiUrl = "http://$_laptopIp:8000/predict";
+const String _laptopIp = "192.168.1.38"; // User's laptop IP address
+const String _apiUrl = "http://$_laptopIp:5000/predict";
 
 Future<Map<String, dynamic>> analyzeImage({
   File? file,
