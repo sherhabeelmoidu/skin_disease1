@@ -14,6 +14,7 @@ class _LoginAppState extends State<LoginApp> {
   TextEditingController emailcontroller = TextEditingController();
   TextEditingController password1controller = TextEditingController();
   bool _obscurePassword = true;
+  bool _loading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +104,8 @@ class _LoginAppState extends State<LoginApp> {
                       TextField(
                         controller: emailcontroller,
                         keyboardType: TextInputType.emailAddress,
+                        autocorrect: false,
+                        enableSuggestions: false,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           fillColor: Colors.white.withOpacity(0.1),
@@ -159,6 +162,8 @@ class _LoginAppState extends State<LoginApp> {
                       TextField(
                         controller: password1controller,
                         obscureText: _obscurePassword,
+                        autocorrect: false,
+                        enableSuggestions: false,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           fillColor: Colors.white.withOpacity(0.1),
@@ -198,13 +203,32 @@ class _LoginAppState extends State<LoginApp> {
                         width: double.infinity,
                         height: 60,
                         child: ElevatedButton(
-                          onPressed: () {
-                            login(
-                              email: emailcontroller.text,
-                              password1: password1controller.text,
-                              context: context,
-                            );
-                          },
+                          onPressed: _loading
+                              ? null
+                              : () async {
+                                  if (emailcontroller.text.trim().isEmpty ||
+                                      password1controller.text.trim().isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "Please enter both email and password",
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  setState(() => _loading = true);
+                                  try {
+                                    await login(
+                                      email: emailcontroller.text,
+                                      password1: password1controller.text,
+                                      context: context,
+                                    );
+                                  } finally {
+                                    if (mounted)
+                                      setState(() => _loading = false);
+                                  }
+                                },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: const Color(0xFF2C3E50),
@@ -212,13 +236,22 @@ class _LoginAppState extends State<LoginApp> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          child: const Text(
-                            'Sign In',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
+                          child: _loading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFF2C3E50),
+                                  ),
+                                )
+                              : const Text(
+                                  'Sign In',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 32),

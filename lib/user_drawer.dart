@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skin_disease1/doctors_screen.dart';
 import 'package:skin_disease1/profile_screen.dart';
 import 'package:skin_disease1/notifications_screen.dart';
-import 'package:skin_disease1/main.dart';
+import 'package:skin_disease1/service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skin_disease1/scan_history_screen.dart';
 import 'package:skin_disease1/utils/responsive_helper.dart';
@@ -281,14 +281,7 @@ class _UserDrawerState extends State<UserDrawer> {
             ),
           ),
           ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _auth.signOut();
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const AuthWrapper()),
-                (route) => false,
-              );
-            },
+            onPressed: () => logoutUser(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFEF4444),
               foregroundColor: Colors.white,

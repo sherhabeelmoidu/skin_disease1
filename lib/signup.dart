@@ -25,6 +25,7 @@ class _SignUpState extends State<SignUp> {
   Uint8List? _webIdProofBytes;
   String? _idProofUrl;
   bool _isUploading = false;
+  bool _isLoading = false;
 
   final cloudinary = CloudinaryPublic(
     'dgn6dvfzm',
@@ -209,6 +210,8 @@ class _SignUpState extends State<SignUp> {
                       TextField(
                         controller: emailcontroller,
                         keyboardType: TextInputType.emailAddress,
+                        autocorrect: false,
+                        enableSuggestions: false,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           fillColor: Colors.white.withOpacity(0.1),
@@ -235,6 +238,8 @@ class _SignUpState extends State<SignUp> {
                       TextField(
                         controller: password1controller,
                         obscureText: _obscurePassword,
+                        autocorrect: false,
+                        enableSuggestions: false,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           fillColor: Colors.white.withOpacity(0.1),
@@ -273,6 +278,8 @@ class _SignUpState extends State<SignUp> {
                       TextField(
                         controller: confirmPasswordController,
                         obscureText: _obscureConfirmPassword,
+                        autocorrect: false,
+                        enableSuggestions: false,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           fillColor: Colors.white.withOpacity(0.1),
@@ -368,9 +375,20 @@ class _SignUpState extends State<SignUp> {
                         width: double.infinity,
                         height: 60,
                         child: ElevatedButton(
-                          onPressed: _isUploading
+                          onPressed: (_isUploading || _isLoading)
                               ? null
-                              : () {
+                              : () async {
+                                  if (namecontroller.text.trim().isEmpty ||
+                                      emailcontroller.text.trim().isEmpty ||
+                                      password1controller.text.trim().isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text("Please fill all fields"),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
                                   if (_selectedRole == 'doctor' &&
                                       _idProofUrl == null) {
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -389,14 +407,21 @@ class _SignUpState extends State<SignUp> {
                                     );
                                     return;
                                   }
-                                  reg(
-                                    email: emailcontroller.text,
-                                    password1: password1controller.text,
-                                    name: namecontroller.text,
-                                    role: _selectedRole,
-                                    idProofUrl: _idProofUrl,
-                                    context: context,
-                                  );
+
+                                  setState(() => _isLoading = true);
+                                  try {
+                                    await reg(
+                                      email: emailcontroller.text,
+                                      password1: password1controller.text,
+                                      name: namecontroller.text,
+                                      role: _selectedRole,
+                                      idProofUrl: _idProofUrl,
+                                      context: context,
+                                    );
+                                  } finally {
+                                    if (mounted)
+                                      setState(() => _isLoading = false);
+                                  }
                                 },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
@@ -405,7 +430,7 @@ class _SignUpState extends State<SignUp> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          child: _isUploading
+                          child: (_isUploading || _isLoading)
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,

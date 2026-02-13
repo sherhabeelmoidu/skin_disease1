@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:cloudinary_public/cloudinary_public.dart';
-import 'package:skin_disease1/main.dart';
+import 'package:skin_disease1/service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -16,16 +16,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  final cloudinary = CloudinaryPublic('dgn6dvfzm', 'skindisease_images', cache: false);
+  final cloudinary = CloudinaryPublic(
+    'dgn6dvfzm',
+    'skindisease_images',
+    cache: false,
+  );
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
   final TextEditingController _bloodGroupController = TextEditingController();
-  final TextEditingController _currentPasswordController = TextEditingController();
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   File? _selectedImage;
   bool _isLoading = false;
@@ -81,7 +87,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       try {
         final response = await cloudinary.uploadFile(
-          CloudinaryFile.fromFile(image.path, resourceType: CloudinaryResourceType.Image),
+          CloudinaryFile.fromFile(
+            image.path,
+            resourceType: CloudinaryResourceType.Image,
+          ),
         );
 
         setState(() {
@@ -89,14 +98,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _isLoading = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile image updated')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Profile image updated')));
       } catch (e) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
       }
     }
   }
@@ -122,9 +131,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SnackBar(content: Text('Profile updated successfully')),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -134,7 +143,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('My Profile', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text(
+          'My Profile',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => Navigator.pop(context),
@@ -153,13 +165,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   height: 120,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF3B9AE1), width: 2),
+                    border: Border.all(
+                      color: const Color(0xFF3B9AE1),
+                      width: 2,
+                    ),
                     image: _profileImageUrl != null
-                        ? DecorationImage(image: NetworkImage(_profileImageUrl!), fit: BoxFit.cover)
+                        ? DecorationImage(
+                            image: NetworkImage(_profileImageUrl!),
+                            fit: BoxFit.cover,
+                          )
                         : null,
                   ),
                   child: _profileImageUrl == null
-                      ? const Icon(Icons.person, size: 60, color: Color(0xFFCBD5E1))
+                      ? const Icon(
+                          Icons.person,
+                          size: 60,
+                          color: Color(0xFFCBD5E1),
+                        )
                       : null,
                 ),
                 GestureDetector(
@@ -170,15 +192,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Color(0xFF3B9AE1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             Text(
-              _nameController.text.isEmpty ? 'Set Your Name' : _nameController.text,
-              style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
+              _nameController.text.isEmpty
+                  ? 'Set Your Name'
+                  : _nameController.text,
+              style: GoogleFonts.outfit(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 32),
 
@@ -188,51 +219,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Row(
                   children: [
-                    Expanded(child: _buildField('Height', _heightController, Icons.height, 'cm')),
+                    Expanded(
+                      child: _buildField(
+                        'Height',
+                        _heightController,
+                        Icons.height,
+                        'cm',
+                      ),
+                    ),
                     const SizedBox(width: 16),
-                    Expanded(child: _buildField('Weight', _weightController, Icons.monitor_weight_outlined, 'kg')),
+                    Expanded(
+                      child: _buildField(
+                        'Weight',
+                        _weightController,
+                        Icons.monitor_weight_outlined,
+                        'kg',
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildField('Blood Group', _bloodGroupController, Icons.bloodtype_outlined, null),
+                _buildField(
+                  'Blood Group',
+                  _bloodGroupController,
+                  Icons.bloodtype_outlined,
+                  null,
+                ),
               ],
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             _buildSectionCard(
               title: 'Contact Details',
               children: [
-                _buildField('Full Name', _nameController, Icons.person_outline, null),
+                _buildField(
+                  'Full Name',
+                  _nameController,
+                  Icons.person_outline,
+                  null,
+                ),
                 const SizedBox(height: 16),
-                _buildField('Phone Number', _phoneController, Icons.phone_outlined, null),
+                _buildField(
+                  'Phone Number',
+                  _phoneController,
+                  Icons.phone_outlined,
+                  null,
+                ),
               ],
             ),
 
             const SizedBox(height: 32),
-            
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _updateProfile,
-                child: _isLoading 
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Save Changes'),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Save Changes'),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: () async {
-                  await _auth.signOut();
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const AuthWrapper()),
-                    (route) => false,
-                  );
-                },
+                onPressed: () => logoutUser(context),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFE11D48),
                   side: const BorderSide(color: Color(0xFFE11D48)),
@@ -247,7 +308,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSectionCard({required String title, required List<Widget> children}) {
+  Widget _buildSectionCard({
+    required String title,
+    required List<Widget> children,
+  }) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -256,7 +320,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text(
               title,
-              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: const Color(0xFF1E293B)),
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: const Color(0xFF1E293B),
+              ),
             ),
             const SizedBox(height: 20),
             ...children,
@@ -266,11 +334,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildField(String label, TextEditingController controller, IconData icon, String? suffix) {
+  Widget _buildField(
+    String label,
+    TextEditingController controller,
+    IconData icon,
+    String? suffix,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.outfit(fontSize: 13, color: const Color(0xFF64748B), fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: GoogleFonts.outfit(
+            fontSize: 13,
+            color: const Color(0xFF64748B),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
