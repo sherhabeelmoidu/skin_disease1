@@ -5,10 +5,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:http_parser/http_parser.dart';
 
-// Replace this with your laptop's IP address (e.g., "192.168.1.10")
-// You can find your IP by running 'ipconfig' (Windows) or 'ifconfig' (Mac/Linux)
-const String _laptopIp = "192.168.1.38"; // User's laptop IP address
-const String _apiUrl = "http://$_laptopIp:5000/predict";
+// Hosted backend base URL (No trailing slash is often safer)
+const String _apiUrl = "https://dermasetsnew.onrender.com";
 
 Future<Map<String, dynamic>> analyzeImage({
   File? file,
@@ -19,6 +17,9 @@ Future<Map<String, dynamic>> analyzeImage({
   try {
     debugPrint('Starting analysis at $_apiUrl');
     var request = http.MultipartRequest('POST', Uri.parse(_apiUrl));
+
+    // Some browsers block custom headers in preflight.
+    // We will rely on the 'uid' field to trigger the JSON response.
 
     if (userId != null) {
       request.fields['uid'] = userId;
@@ -49,9 +50,9 @@ Future<Map<String, dynamic>> analyzeImage({
     }
 
     var streamedResponse = await request.send().timeout(
-      const Duration(seconds: 15),
+      const Duration(seconds: 60),
       onTimeout: () => throw Exception(
-        "Connection timed out. Check if your backend is running at $_apiUrl",
+        "Connection timed out. Render instances can take up to a minute to wake up on the first request. Please try again in a few seconds.",
       ),
     );
 
