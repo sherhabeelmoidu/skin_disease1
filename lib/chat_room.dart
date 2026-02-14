@@ -19,6 +19,8 @@ class _ChatRoomState extends State<ChatRoom> {
   final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
   late String chatId;
 
+  String? currentUserName;
+
   @override
   void initState() {
     super.initState();
@@ -26,6 +28,24 @@ class _ChatRoomState extends State<ChatRoom> {
     List<String> ids = [currentUserId, widget.peerId];
     ids.sort();
     chatId = ids.join('_');
+    _fetchCurrentUserName();
+    _markAsRead();
+  }
+
+  void _fetchCurrentUserName() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('user')
+        .doc(currentUserId)
+        .get();
+    if (doc.exists) {
+      setState(() {
+        currentUserName = (doc.data() as Map<String, dynamic>)['name'];
+      });
+    }
+  }
+
+  void _markAsRead() {
+    // Optional: add unread counters logic here
   }
 
   void _sendMessage() async {
@@ -36,30 +56,45 @@ class _ChatRoomState extends State<ChatRoom> {
 
     final timestamp = FieldValue.serverTimestamp();
 
-    // Add to messages sub-collection
-    await FirebaseFirestore.instance
+    // Batch update for atomicity
+    final batch = FirebaseFirestore.instance.batch();
+
+    // 1. Add message
+    final messageRef = FirebaseFirestore.instance
         .collection('chats')
         .doc(chatId)
         .collection('messages')
-        .add({
+        .doc();
+
+    batch.set(messageRef, {
       'senderId': currentUserId,
       'receiverId': widget.peerId,
       'text': message,
       'timestamp': timestamp,
     });
 
-    // Update chat metadata
-    await FirebaseFirestore.instance.collection('chats').doc(chatId).set({
+    // 2. Update chat metadata
+    final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatId);
+    batch.set(chatRef, {
       'users': [currentUserId, widget.peerId],
       'peerNames': {
-        currentUserId: FirebaseAuth.instance.currentUser?.displayName ?? 'User',
+        currentUserId: currentUserName ?? 'User',
         widget.peerId: widget.peerName,
       },
       'lastMessage': message,
       'lastTimestamp': timestamp,
+      'lastSenderId': currentUserId,
     }, SetOptions(merge: true));
 
-    _scrollController.animateTo(0, duration: Duration(milliseconds: 300), curve: Curves.easeOut);
+    await batch.commit();
+
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   @override
@@ -73,10 +108,23 @@ class _ChatRoomState extends State<ChatRoom> {
           children: [
             CircleAvatar(
               backgroundColor: Color(0xFF3B9AE1).withOpacity(0.1),
-              child: Text(widget.peerName[0].toUpperCase(), style: TextStyle(color: Color(0xFF3B9AE1), fontWeight: FontWeight.bold)),
+              child: Text(
+                widget.peerName[0].toUpperCase(),
+                style: TextStyle(
+                  color: Color(0xFF3B9AE1),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             SizedBox(width: 12),
-            Text(widget.peerName, style: TextStyle(color: Color(0xFF2C3E50), fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              widget.peerName,
+              style: TextStyle(
+                color: Color(0xFF2C3E50),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ),
@@ -91,7 +139,8 @@ class _ChatRoomState extends State<ChatRoom> {
                   .orderBy('timestamp', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+                if (!snapshot.hasData)
+                  return Center(child: CircularProgressIndicator());
 
                 return ListView.builder(
                   controller: _scrollController,
@@ -99,9 +148,15 @@ class _ChatRoomState extends State<ChatRoom> {
                   padding: EdgeInsets.all(16),
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
-                    final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                    final data =
+                        snapshot.data!.docs[index].data()
+                            as Map<String, dynamic>;
                     final isMe = data['senderId'] == currentUserId;
-                    return _buildMessageBubble(data['text'], isMe, data['timestamp']);
+                    return _buildMessageBubble(
+                      data['text'],
+                      isMe,
+                      data['timestamp'],
+                    );
                   },
                 );
               },
@@ -119,7 +174,9 @@ class _ChatRoomState extends State<ChatRoom> {
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 4),
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.7,
+        ),
         decoration: BoxDecoration(
           color: isMe ? Color(0xFF3B9AE1) : Colors.white,
           borderRadius: BorderRadius.only(
@@ -128,19 +185,33 @@ class _ChatRoomState extends State<ChatRoom> {
             bottomLeft: Radius.circular(isMe ? 16 : 0),
             bottomRight: Radius.circular(isMe ? 0 : 16),
           ),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5),
+          ],
         ),
         child: Column(
-          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMe
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             Text(
               text,
-              style: TextStyle(color: isMe ? Colors.white : Color(0xFF2C3E50), fontSize: 15),
+              style: TextStyle(
+                color: isMe ? Colors.white : Color(0xFF2C3E50),
+                fontSize: 15,
+              ),
             ),
             SizedBox(height: 4),
             Text(
-              timestamp != null ? DateFormat('hh:mm a').format((timestamp as Timestamp).toDate()) : '...',
-              style: TextStyle(color: isMe ? Colors.white70 : Colors.grey, fontSize: 10),
+              timestamp != null
+                  ? DateFormat(
+                      'hh:mm a',
+                    ).format((timestamp as Timestamp).toDate())
+                  : '...',
+              style: TextStyle(
+                color: isMe ? Colors.white70 : Colors.grey,
+                fontSize: 10,
+              ),
             ),
           ],
         ),
@@ -151,17 +222,32 @@ class _ChatRoomState extends State<ChatRoom> {
   Widget _buildInputArea() {
     return Container(
       padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
       child: SafeArea(
         child: Row(
           children: [
             Expanded(
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(color: Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(24)),
+                decoration: BoxDecoration(
+                  color: Color(0xFFF5F7FA),
+                  borderRadius: BorderRadius.circular(24),
+                ),
                 child: TextField(
                   controller: _messageController,
-                  decoration: InputDecoration(hintText: 'Type a message...', border: InputBorder.none),
+                  decoration: InputDecoration(
+                    hintText: 'Type a message...',
+                    border: InputBorder.none,
+                  ),
                   maxLines: null,
                 ),
               ),

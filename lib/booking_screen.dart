@@ -189,27 +189,152 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _selectedDate = DateTime.now().add(const Duration(days: 1));
+  }
+
+  Widget _buildDateSection() {
+    final now = DateTime.now();
+    // Generate dates for the next 14 days
+    final dates = List.generate(14, (index) => now.add(Duration(days: index)));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Select Date',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF2C3E50),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => _selectDate(context),
+              icon: const Icon(Icons.calendar_month, size: 18),
+              label: const Text('More'),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF3B9AE1),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 90,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: dates.length,
+            itemBuilder: (context, index) {
+              final date = dates[index];
+              final isSelected =
+                  _selectedDate != null &&
+                  date.year == _selectedDate!.year &&
+                  date.month == _selectedDate!.month &&
+                  date.day == _selectedDate!.day;
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedDate = date;
+                      _selectedSlotId = null;
+                      _selectedSlotTime = null;
+                    });
+                  },
+                  child: Container(
+                    width: 70,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF3B9AE1)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isSelected
+                              ? const Color(0xFF3B9AE1).withOpacity(0.3)
+                              : Colors.black.withOpacity(0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFF3B9AE1)
+                            : Colors.grey[100]!,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          DateFormat('MMM').format(date),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isSelected ? Colors.white70 : Colors.grey,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          DateFormat('d').format(date),
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFF2C3E50),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          DateFormat('E').format(date),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isSelected
+                                ? Colors.white70
+                                : Colors.grey[400],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        title: Container(
-          constraints: BoxConstraints(
-            maxWidth: ResponsiveHelper.getMaxWidth(context),
-          ),
-          child: const Text(
-            'Book Appointment',
-            style: TextStyle(
-              color: Color(0xFF2C3E50),
-              fontWeight: FontWeight.bold,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF3B9AE1), Color(0xFF2C3E50)],
             ),
           ),
         ),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Book Appointment',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF2C3E50)),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -302,60 +427,8 @@ class _BookingScreenState extends State<BookingScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                Text(
-                  'Select Date & Time',
-                  style: TextStyle(
-                    fontSize: ResponsiveHelper.getResponsiveFontSize(
-                      context,
-                      18,
-                    ),
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF2C3E50),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                InkWell(
-                  onTap: () => _selectDate(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _selectedDate != null
-                            ? const Color(0xFF3B9AE1)
-                            : Colors.transparent,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_today,
-                          color: Color(0xFF3B9AE1),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            _selectedDate == null
-                                ? 'Select Appointment Date'
-                                : DateFormat(
-                                    'EEEE, d MMMM yyyy',
-                                  ).format(_selectedDate!),
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: _selectedDate == null
-                                  ? const Color(0xFF7F8C8D)
-                                  : const Color(0xFF2C3E50),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+
+                _buildDateSection(),
                 const SizedBox(height: 24),
 
                 if (_selectedDate != null) ...[

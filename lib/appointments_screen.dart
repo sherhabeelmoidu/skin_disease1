@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skin_disease1/appointment_details_screen.dart';
 import 'package:skin_disease1/utils/responsive_helper.dart';
+import 'package:skin_disease1/chat_room.dart';
 
 class AppointmentsScreen extends StatelessWidget {
   const AppointmentsScreen({Key? key}) : super(key: key);
@@ -258,6 +259,39 @@ class AppointmentsScreen extends StatelessWidget {
                   ),
                 ],
               ),
+              if (status == 'confirmed' || status == 'completed') ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChatRoom(
+                                peerId: data['doctorId'],
+                                peerName: data['doctorName'],
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.chat_outlined, size: 16),
+                        label: const Text('Chat with Doctor'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF3B9AE1),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               if (status == 'completed') ...[
                 const SizedBox(height: 12),
                 Container(

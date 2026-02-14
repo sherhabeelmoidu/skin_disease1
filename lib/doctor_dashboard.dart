@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skin_disease1/chat_list.dart';
 import 'package:skin_disease1/notification_service.dart';
 import 'package:skin_disease1/notifications_screen.dart';
+import 'package:skin_disease1/chat_room.dart';
 import 'package:skin_disease1/main.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skin_disease1/doctor_slots_screen.dart';
@@ -485,20 +486,45 @@ class _DoctorAppointments extends StatelessWidget {
                 padding: EdgeInsets.symmetric(vertical: 16),
                 child: Divider(),
               ),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => _showCompleteDialog(
-                    context,
-                    docId,
-                    data['userId'],
-                    data['doctorName'],
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChatRoom(
+                              peerId: data['userId'],
+                              peerName: data['userName'] ?? 'Patient',
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.chat_outlined, size: 16),
+                      label: const Text('Chat'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF3B9AE1),
+                        side: const BorderSide(color: Color(0xFF3B9AE1)),
+                      ),
+                    ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _showCompleteDialog(
+                        context,
+                        docId,
+                        data['userId'],
+                        data['doctorName'],
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                      ),
+                      child: const Text('Complete'),
+                    ),
                   ),
-                  child: const Text('Complete Consultation'),
-                ),
+                ],
               ),
             ],
           ],

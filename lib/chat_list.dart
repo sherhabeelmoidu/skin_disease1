@@ -19,18 +19,29 @@ class ChatList extends StatelessWidget {
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('chats')
+            .where('users', arrayContains: currentUserId)
+            .orderBy('lastTimestamp', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+          if (snapshot.hasError)
+            return Center(child: Text('Error: ${snapshot.error}'));
+          if (snapshot.connectionState == ConnectionState.waiting)
+            return const Center(child: CircularProgressIndicator());
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.chat_bubble_outline, size: 60, color: Colors.grey[300]),
+                  Icon(
+                    Icons.chat_bubble_outline,
+                    size: 60,
+                    color: Colors.grey[300],
+                  ),
                   const SizedBox(height: 16),
-                  const Text('No conversations yet', style: TextStyle(color: Colors.grey)),
+                  const Text(
+                    'No conversations yet',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             );
@@ -42,7 +53,7 @@ class ChatList extends StatelessWidget {
             itemBuilder: (context, index) {
               final doc = snapshot.data!.docs[index];
               final data = doc.data() as Map<String, dynamic>;
-              
+
               // Find the peer user
               final users = List<String>.from(data['users']);
               final peerId = users.firstWhere((id) => id != currentUserId);
@@ -54,16 +65,33 @@ class ChatList extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                    ),
+                  ],
                 ),
                 child: ListTile(
                   contentPadding: const EdgeInsets.all(12),
                   leading: CircleAvatar(
                     radius: 25,
                     backgroundColor: const Color(0xFF3B9AE1).withOpacity(0.1),
-                    child: Text(peerName[0].toUpperCase(), style: const TextStyle(color: Color(0xFF3B9AE1), fontWeight: FontWeight.bold)),
+                    child: Text(
+                      peerName[0].toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF3B9AE1),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                  title: Text(peerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  title: Text(
+                    peerName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   subtitle: Text(
                     data['lastMessage'] ?? '',
                     maxLines: 1,
@@ -71,16 +99,17 @@ class ChatList extends StatelessWidget {
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                   trailing: Text(
-                    data['lastTimestamp'] != null 
-                      ? _formatTimestamp(data['lastTimestamp'] as Timestamp)
-                      : '',
+                    data['lastTimestamp'] != null
+                        ? _formatTimestamp(data['lastTimestamp'] as Timestamp)
+                        : '',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ChatRoom(peerId: peerId, peerName: peerName),
+                        builder: (context) =>
+                            ChatRoom(peerId: peerId, peerName: peerName),
                       ),
                     );
                   },
@@ -104,7 +133,13 @@ class ChatList extends StatelessWidget {
               ),
             ),
           ),
-          title: Text('Messages', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
+          title: Text(
+            'Messages',
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
           iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: body,
@@ -117,7 +152,8 @@ class ChatList extends StatelessWidget {
   String _formatTimestamp(Timestamp timestamp) {
     final now = DateTime.now();
     final date = timestamp.toDate();
-    if (DateTime(now.year, now.month, now.day) == DateTime(date.year, date.month, date.day)) {
+    if (DateTime(now.year, now.month, now.day) ==
+        DateTime(date.year, date.month, date.day)) {
       return DateFormat('hh:mm a').format(date);
     }
     return DateFormat('MMM d').format(date);
