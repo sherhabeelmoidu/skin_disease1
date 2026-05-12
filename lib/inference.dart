@@ -5,10 +5,8 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
-// Hosted backend base URL - Updated to hit /predict endpoint
-// Note: If you see 502 errors, the ResNet50 model might be exceeding Render's memory limit.
-// In that case, consider switching the backend to a lighter model like MobileNetV2.
-const String _apiUrl = "https://model-1-1.onrender.com/predict";
+// Hosted backend base URL - Updated to hit Railway /predict endpoint
+const String _apiUrl = "https://web-production-cceff.up.railway.app/predict";
 
 Future<Map<String, dynamic>> analyzeImage({
   File? file,
@@ -60,7 +58,7 @@ Future<Map<String, dynamic>> analyzeImage({
       var streamedResponse = await request.send().timeout(
             const Duration(seconds: 150),
             onTimeout: () => throw Exception(
-              "Connection timed out. Render instances can take up to two minutes to wake up on the first request. Please try again.",
+              "Connection timed out. Railway instances might take a moment to wake up. Please try again.",
             ),
           );
 
