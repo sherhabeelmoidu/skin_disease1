@@ -140,7 +140,12 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
 
   Future<void> _pickImageAndScan() async {
     if (kIsWeb) {
-      final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? file = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
       if (file != null) {
         final bytes = await file.readAsBytes();
         setState(() {
@@ -189,6 +194,9 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                   } else {
                     final XFile? file = await _picker.pickImage(
                       source: ImageSource.camera,
+                      maxWidth: 1024,
+                      maxHeight: 1024,
+                      imageQuality: 85,
                     );
                     if (file != null) {
                       setState(() {
@@ -210,6 +218,9 @@ class _CameraGalleryPageState extends State<CameraGalleryPage> {
                   Navigator.pop(context);
                   final XFile? file = await _picker.pickImage(
                     source: ImageSource.gallery,
+                    maxWidth: 1024,
+                    maxHeight: 1024,
+                    imageQuality: 85,
                   );
                   if (file != null) {
                     setState(() {
