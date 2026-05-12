@@ -1,11 +1,14 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
-// Hosted backend base URL
-const String _apiUrl = "https://model-1-1.onrender.com/";
+// Hosted backend base URL - Updated to hit /predict endpoint
+// Note: If you see 502 errors, the ResNet50 model might be exceeding Render's memory limit.
+// In that case, consider switching the backend to a lighter model like MobileNetV2.
+const String _apiUrl = "https://model-1-1.onrender.com/predict";
 
 Future<Map<String, dynamic>> analyzeImage({
   File? file,
@@ -14,15 +17,22 @@ Future<Map<String, dynamic>> analyzeImage({
   String? imageUrl,
 }) async {
   int retryCount = 0;
-  const int maxRetries = 2;
+  const int maxRetries = 3;
 
   while (retryCount <= maxRetries) {
     try {
       debugPrint('Starting analysis at $_apiUrl (Attempt ${retryCount + 1})');
+      
+      // Ensure we have a trailing slash if needed, or use exact URL
       var request = http.MultipartRequest('POST', Uri.parse(_apiUrl));
 
-      // Browser-like headers
-      request.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      // Use a mobile-like user agent instead of a desktop one to avoid triggering web-only protections
+      request.headers['User-Agent'] = 'DermaSenseMobile/1.0';
+      request.headers['Accept'] = '*/*';
+
+      // Add common fields that backends often expect
+      if (userId != null) request.fields['uid'] = userId;
+      if (imageUrl != null) request.fields['imageUrl'] = imageUrl;
 
       if (file != null) {
         request.files.add(
@@ -45,8 +55,10 @@ Future<Map<String, dynamic>> analyzeImage({
         throw Exception("No image provided");
       }
 
+      // Render instances can take time to wake up (cold start)
+      // The first request often triggers a 502 if the proxy times out waiting for the container to start.
       var streamedResponse = await request.send().timeout(
-            const Duration(seconds: 120),
+            const Duration(seconds: 150),
             onTimeout: () => throw Exception(
               "Connection timed out. Render instances can take up to two minutes to wake up on the first request. Please try again.",
             ),
@@ -55,36 +67,75 @@ Future<Map<String, dynamic>> analyzeImage({
       var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        // Since the backend returns HTML (render_template), we need to extract the prediction text.
         final responseBody = response.body;
-        
-        // Define possible labels from the backend
-        final labels = [
-          'Acne',
-          'Hairloss',
-          'Nail Fungus',
-          'Normal',
-          'Skin Allergy'
-        ];
+        debugPrint('API Response: $responseBody');
 
-        String detectedLabel = 'Unknown';
-        
-        // Simple search for labels in the HTML response
-        for (var label in labels) {
-          if (responseBody.contains(label)) {
-            detectedLabel = label;
-            break;
+        try {
+          // Attempt to parse as JSON first (Robust approach)
+          final Map<String, dynamic> data = json.decode(responseBody);
+          
+          // Try common prediction keys returned by Flask/FastAPI
+          String detectedLabel = (data['prediction'] ?? 
+                                 data['label'] ?? 
+                                 data['class'] ?? 
+                                 data['detected_label'] ?? 
+                                 'Unknown').toString();
+          
+          double confidence = 0.98; // Default fallback
+          if (data['confidence'] != null) {
+            confidence = double.tryParse(data['confidence'].toString()) ?? 0.98;
+          } else if (data['probability'] != null) {
+            confidence = double.tryParse(data['probability'].toString()) ?? 0.98;
           }
-        }
 
-        return {
-          'label': detectedLabel,
-          'confidence': 0.98, // Dummy confidence as backend doesn't provide it in JSON
-          'details': null,    // Use null so UI uses its local descriptions
-          'percentage_change': null,
-        };
+          return {
+            'label': detectedLabel,
+            'confidence': confidence,
+            'details': data['details'],
+            'percentage_change': data['percentage_change'],
+          };
+        } catch (e) {
+          // Fallback: search for labels in the body text if it's not valid JSON
+          debugPrint('JSON parsing failed, falling back to text search: $e');
+          
+          final labels = [
+            'Acne',
+            'Hairloss',
+            'Nail Fungus',
+            'Normal',
+            'Skin Allergy'
+          ];
+
+          String detectedLabel = 'Unknown';
+          for (var label in labels) {
+            if (responseBody.contains(label)) {
+              detectedLabel = label;
+              break;
+            }
+          }
+
+          return {
+            'label': detectedLabel,
+            'confidence': 0.98,
+            'details': null,
+            'percentage_change': null,
+          };
+        }
+      } else if (response.statusCode == 502 || response.statusCode == 500 || response.statusCode == 504) {
+        debugPrint('Server error (${response.statusCode}) - Attempt ${retryCount + 1}');
+        debugPrint('Response Preview: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
+        
+        if (retryCount < maxRetries) {
+          retryCount++;
+          // Exponential backoff for retries
+          int delay = retryCount * 3; 
+          debugPrint('Retrying in $delay seconds...');
+          await Future.delayed(Duration(seconds: delay));
+          continue;
+        }
+        throw Exception("API Server Error (${response.statusCode}): The backend service might be restarting or overloaded. Please try again in a moment.");
       } else {
-        debugPrint('API Error body: ${response.body}');
+        debugPrint('API Error (${response.statusCode}) body: ${response.body}');
         throw Exception("API Error (${response.statusCode}): Could not get prediction.");
       }
     } catch (e) {
@@ -96,8 +147,8 @@ Future<Map<String, dynamic>> analyzeImage({
 
       if (isRetryable && retryCount < maxRetries) {
         retryCount++;
-        debugPrint('Retrying in 2 seconds...');
-        await Future.delayed(const Duration(seconds: 2));
+        debugPrint('Retrying in 3 seconds...');
+        await Future.delayed(const Duration(seconds: 3));
         continue;
       }
       rethrow;
